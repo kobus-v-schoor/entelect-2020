@@ -4,7 +4,7 @@ import logging
 import os
 import json
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class BLOCK:
@@ -31,7 +31,7 @@ class SPEED:
     INIT_SPEED = 5
     BOOST_SPEED = 15
 
-    STEPS = [MIN_SPEED, SPEED_1, SPEED_2, SPEED_3, MAX_SPEED]
+    STEPS = [MIN_SPEED, SPEED_1, INIT_SPEED, SPEED_2, SPEED_3, MAX_SPEED]
 
 SPEED = SPEED()
 
@@ -170,21 +170,29 @@ class Bot:
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd}')
 
+    # returns the CMD that should be executed given the current state
+    def find_cmd(self):
+        return CMD.NOP
+
     def run(self):
         log.debug('bot started')
 
         while True:
+            # get the next round number
             self.wait_for_next_round()
+
+            # read the state file
             if self.read_state():
+                # parse the state file
                 self.parse_state()
 
+            # check if game is finished
             if self.finished:
                 log.info('bot finished playing')
                 break
 
-            # some logic
-            # play some move
-            self.exec(CMD.LEFT)
+            # execute next cmd
+            self.exec(self.find_cmd())
 
 
 if __name__ == '__main__':
