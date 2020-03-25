@@ -3,13 +3,12 @@
 import logging
 import os
 import json
+import enum
 
 logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
 log = logging.getLogger(__name__)
 
-class BLOCK:
-    __slots__ = ()
-
+class Block(enum.Enum):
     EMPTY = 0
     MUD = 1
     OIL_SPILL = 2
@@ -17,11 +16,7 @@ class BLOCK:
     FINISH_LINE = 4
     BOOST = 5
 
-BLOCK = BLOCK()
-
-class SPEED:
-    __slots__ = ()
-
+class Speed(enum.Enum):
     MIN_SPEED = 0
     SPEED_1 = 1
     SPEED_2 = 6
@@ -31,13 +26,9 @@ class SPEED:
     INIT_SPEED = 5
     BOOST_SPEED = 15
 
-    STEPS = [MIN_SPEED, SPEED_1, INIT_SPEED, SPEED_2, SPEED_3, MAX_SPEED]
+    # STEPS = [MIN_SPEED, SPEED_1, INIT_SPEED, SPEED_2, SPEED_3, MAX_SPEED]
 
-SPEED = SPEED()
-
-class CMD:
-    __slots__ = ()
-
+class Cmd(enum.Enum):
     NOP = 'NOTHING'
 
     ACCEL = 'ACCELERATE'
@@ -47,8 +38,6 @@ class CMD:
 
     BOOST = 'USE_BOOST'
     OIL = 'USE_OIL'
-
-CMD = CMD()
 
 class Map:
     def __init__(self, x, y, world_map):
@@ -66,7 +55,7 @@ class Map:
         cols = max_x - min_x + 1
 
         # order: map[x][y]
-        self.map = [[BLOCK.EMPTY for _ in range(rows)] for _ in range(cols)]
+        self.map = [[Block.EMPTY for _ in range(rows)] for _ in range(cols)]
 
         # fill in map
         for w in world_map:
@@ -168,11 +157,12 @@ class Bot:
     # executes the given cmd for the current round
     def exec(self, cmd):
         log.info(f'exec {cmd} for round {self.next_round}')
-        print(f'C;{self.next_round};{cmd}')
+        print(f'C;{self.next_round};{cmd.value}')
 
-    # returns the CMD that should be executed given the current state
+    # returns the cmd that should be executed given the current state
     def find_cmd(self):
-        return CMD.NOP
+        import random
+        return random.choice(list(Cmd))
 
     def run(self):
         log.debug('bot started')
