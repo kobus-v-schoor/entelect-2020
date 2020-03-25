@@ -59,7 +59,7 @@ def bfs(max_depth):
     while queue:
         cur = queue.popleft()
         if cur.depth():
-            yield cur
+            yield cur.path
         if not cur.depth() >= max_depth:
             queue += list(cur.children)
 
@@ -183,10 +183,33 @@ class Bot:
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd.value}')
 
-    # returns the cmd that should be executed given the current state
-    def find_cmd(self):
+    # returns a numerical score for some chosen path
+    # the higher the score the better the path
+    # will simulate the path's actions and score it accordingly
+    def score(self, path):
+        log.debug(f'scoring {path}')
+
         import random
-        return random.choice(list(Cmd))
+        return random.random()
+
+    # returns the cmd that should be executed given the current state
+    # done by doing a search for the best move
+    def find_cmd(self):
+        max_search_depth = 3
+        paths = []
+
+        for path in bfs(max_search_depth):
+            paths.append((path, self.score(path)))
+
+        # sort by scores
+        paths = sorted(paths, key=lambda p: p[1], reverse=True)
+
+        # choose best path
+        path = paths[0]
+        log.info(f'chose path {path}')
+
+        # return first move in the best path
+        return path[0][0]
 
     def run(self):
         log.debug('bot started')
