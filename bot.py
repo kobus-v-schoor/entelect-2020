@@ -104,22 +104,34 @@ class Map:
                 return self.map[x - self.min_x][y - self.min_y]
         raise IndexError
 
+class State:
+    def __init__(self, raw_state):
+        # current speed
+        self.speed = raw_state['player']['speed']
+
+        # powerups
+        powerups = raw_state['player']['powerups']
+        self.boosts = len([x for x in powerups if x == 'BOOST'])
+        self.oils = len([x for x in powerups if x == 'OIL'])
+
+        # boosting
+        self.boosting = raw_state['player']['boosting']
+        self.boost_count = raw_state['player']['boostCounter']
+
+        # position
+        self.x = raw_state['player']['position']['x']
+        self.y = raw_state['player']['position']['y']
+
+        # opponent position
+        self.opp_x = raw_state['opponent']['position']['x']
+        self.opp_y = raw_state['opponent']['position']['y']
+
 class Bot:
     def __init__(self):
         self.next_round = None
-
         # state variables
-        self.speed = None
-        self.boosts = None
-        self.oils = None
-        self.boosting = None
-        self.boost_count = None
-        self.x = None
-        self.y = None
-        self.opp_x = None
-        self.opp_y = None
+        self.state = None
         self.map = None
-
         self.finished = False
 
     def wait_for_next_round(self):
@@ -134,7 +146,7 @@ class Bot:
         state_file = os.path.join('rounds', str(self.next_round), 'state.json')
         try:
             with open(state_file, 'r') as f:
-                self.state = json.load(f)
+                self.raw_state = json.load(f)
         except OSError:
             log.error(f'state file "{state_file}" cannot be opened for reading')
             return False
@@ -148,33 +160,16 @@ class Bot:
     def parse_state(self):
         log.debug('parsing state')
 
-        if self.state['player']['state'] == 'FINISHED':
+        if self.raw_state['player']['state'] == 'FINISHED':
             log.debug('detected finished state')
             self.finished = True
             return
 
-        # current speed
-        self.speed = self.state['player']['speed']
-
-        # powerups
-        powerups = self.state['player']['powerups']
-        self.boosts = len([x for x in powerups if x == 'BOOST'])
-        self.oils = len([x for x in powerups if x == 'OIL'])
-
-        # boosting
-        self.boosting = self.state['player']['boosting']
-        self.boost_count = self.state['player']['boostCounter']
-
-        # position
-        self.x = self.state['player']['position']['x']
-        self.y = self.state['player']['position']['y']
-
-        # opponent position
-        self.opp_x = self.state['opponent']['position']['x']
-        self.opp_y = self.state['opponent']['position']['y']
+        # parse state vars
+        self.state = State(self.raw_state)
 
         # parse map
-        self.map = Map(self.x, self.y, self.state['worldMap'])
+        self.map = Map(self.state.x, self.state.y, self.raw_state['worldMap'])
 
         log.debug('finished parsing state')
 
