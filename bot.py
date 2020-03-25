@@ -4,6 +4,7 @@ import logging
 import os
 import json
 import enum
+from collections import deque
 
 logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -38,6 +39,29 @@ class Cmd(enum.Enum):
 
     BOOST = 'USE_BOOST'
     OIL = 'USE_OIL'
+
+class Tree:
+    def __init__(self, path=[]):
+        self.path = path
+        self.children = (Tree(self.path + [c]) for c in Cmd)
+
+    def __str__(self):
+        return str(self.path)
+
+    def depth(self):
+        return len(self.path)
+
+# generator function that generates a bfs search tree
+def bfs(max_depth):
+    queue = deque()
+    queue.append(Tree())
+
+    while queue:
+        cur = queue.popleft()
+        if cur.depth():
+            yield cur
+        if not cur.depth() >= max_depth:
+            queue += list(cur.children)
 
 class Map:
     def __init__(self, x, y, world_map):
