@@ -36,6 +36,18 @@ SPEED_STEPS = [
         Speed.MAX_SPEED.value,
         ]
 
+def next_speed(speed):
+    try:
+        return next(s for s in SPEED_STEPS if s > speed)
+    except StopIteration:
+        return SPEED_STEPS[-1]
+
+def prev_speed(speed):
+    try:
+        return next(s for s in SPEED_STEPS[::-1] if s < speed)
+    except StopIteration:
+        return SPEED_STEPS[0]
+
 class Cmd(enum.Enum):
     NOP = 'NOTHING'
 
@@ -72,6 +84,12 @@ class Map:
         min_y = min(world_map, key=lambda w:w['position']['y'])['position']['y']
         max_y = max(world_map, key=lambda w:w['position']['y'])['position']['y']
 
+        # store absolute minimum and maximum values
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
+
         # generate map
         rows = max_y - min_y + 1
         cols = max_x - min_x + 1
@@ -85,6 +103,9 @@ class Map:
             my = w['position']['y']
             self.map[mx - min_x][my - min_y] = w['surfaceObject']
 
+        self.update_xy(x, y)
+
+    def update_xy(self, x, y):
         # player position
         self.x = x
         self.y = y
@@ -92,16 +113,10 @@ class Map:
         # these are relative, meaning that if rel_min_y == 0 then you cannot
         # move further to the right - same goes for rel_max_y, if rel_max_y == 0
         # you cannot go further to the left
-        self.rel_min_x = min_x - x
-        self.rel_max_x = max_x - x
-        self.rel_min_y = min_y - y
-        self.rel_max_y = max_y - y
-
-        # absolute minimum and maximum values
-        self.min_x = min_x
-        self.max_x = max_y
-        self.min_y = min_y
-        self.max_y = max_y
+        self.rel_min_x = self.min_x - x
+        self.rel_max_x = self.max_x - x
+        self.rel_min_y = self.min_y - y
+        self.rel_max_y = self.max_y - y
 
     # returns the map item relative to the current position with order [x,y]
     # this means that [0, 0] returns the current block, [1,-1] returns one block
@@ -113,6 +128,15 @@ class Map:
         if self.rel_min_x <= x <= self.rel_max_x:
             if self.rel_min_y <= y <= self.rel_max_y:
                 return self.map[x - self.rel_min_x][y - self.rel_min_y]
+        raise IndexError
+
+    def __setitem__(self, key, val):
+        x, y = key
+
+        if self.rel_min_x <= x <= self.rel_max_x:
+            if self.rel_min_y <= y <= self.rel_max_y:
+                self.map[x - self.rel_min_x][y - self.rel_min_y] = val
+                return
         raise IndexError
 
 class State:
@@ -141,6 +165,9 @@ class State:
 
         # map
         self.map = Map(self.x, self.y, raw_state['worldMap'])
+
+    def update_map(self):
+        self.map.update_xy(self.x, self.y)
 
     # returns a deep copy of this state
     def copy(self):
@@ -220,33 +247,95 @@ class Bot:
             state.x,
             state.boosts * 7.5,
             state.speed,
-            -state.penalties
+            # -state.penalties,
+            # state.boosts,
+            # state.oils,
             ])
 
     # calculates the new state from the current state based on the taken cmd
     def next_state(self, state, cmd):
         ns = state.copy() # next state variable
+
+        # apply movement modifications
+        x_off, y_off = 0, 0
+
+        if cmd == Cmd.NOP:
+            x_off = ns.speed
+        elif cmd == Cmd.ACCEL:
+            x_off = ns.speed
+            ns.speed = next_speed(ns.speed)
+        elif cmd == Cmd.DECEL:
+            x_off = ns.speed
+            ns.speed = prev_speed(ns.speed)
+        elif cmd == Cmd.LEFT:
+            y_off = -1
+            x_off = ns.speed - 1
+        elif cmd == Cmd.RIGHT:
+            y_off = 1
+            x_off = ns.speed - 1
+        elif cmd == Cmd.BOOST:
+            ns.speed = Speed.BOOST_SPEED.value
+            ns.boosts -= 1
+            ns.boost_count = 5
+            ns.boosting = True
+            x_off = ns.speed
+        elif cmd == Cmd.OIL:
+            if ns.x - 1 < ns.map.max_x:
+                ns.map[-1, 0] = Block.OIL_SPILL
+            ns.oils -= 1
+            x_off = ns.speed
+
+        # check what we drove over
+        for x in range(0 if y_off else 1, x_off + 1):
+            if x >= ns.map.rel_max_x:
+                break
+            block = Block(ns.map[x, y_off])
+            if block == Block.EMPTY:
+                pass
+            elif block == Block.MUD:
+                ns.speed = prev_speed(ns.speed)
+                ns.penalties += 1
+            elif block == Block.OIL_SPILL:
+                ns.speed = prev_speed(ns.speed)
+                ns.penalties += 1
+            elif block == Block.OIL_ITEM:
+                ns.oils += 1
+            elif block == Block.BOOST:
+                ns.boosts += 1
+
+        ns.x += x_off
+        ns.y += y_off
+        ns.update_map()
+
+        # keep track of boosting
+        if ns.boosting:
+            # hit something or decel
+            if ns.speed != Speed.BOOST_SPEED.value:
+                ns.boost_count = 0
+                ns.boosting = False
+            else:
+                ns.boost_count -= 1
+
         return ns
 
     # sums all the scores for some amount of actions
     # also filters out invalid paths
     def score_path(self, path):
-        score = 0
         cs = self.state.copy() # current state
         for cmd in path:
             ## check if the state + cmd has been cached
             pk = (cs, cmd)
-            if pk in self.state_cmd_cache:
-                score += self.state_cmd_cache[pk]
-                continue
+            # if pk in self.state_cmd_cache:
+            #     score += self.state_cmd_cache[pk]
+            #     continue
 
             ## filter out invalid cmds
 
             # already in the left-most lane
-            if cmd == Cmd.LEFT and cs.y >= cs.map.max_y:
+            if cmd == Cmd.LEFT and cs.y <= cs.map.min_y:
                 return float('-inf')
             # already in the right-most lane
-            if cmd == Cmd.RIGHT and cs.y <= cs.map.min_y:
+            if cmd == Cmd.RIGHT and cs.y >= cs.map.max_y:
                 return float('-inf')
             # already at max speed
             if cmd == Cmd.ACCEL and cs.speed >= Speed.MAX_SPEED.value:
@@ -262,15 +351,15 @@ class Bot:
                 return float('-inf')
 
             ## calculate next state
-            ns = self.next_state(cs, cmd)
-            s = self.score(ns)
-            score += s
-            cs = ns
+            cs = self.next_state(cs, cmd)
+            # s = self.score(ns)
+            # score += s
+            # cs = ns
 
             ## store in cache
-            self.state_cmd_cache[pk] = s
+            # self.state_cmd_cache[pk] = s
 
-        return score
+        return self.score(cs)
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
