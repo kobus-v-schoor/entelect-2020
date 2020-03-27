@@ -59,10 +59,20 @@ class Cmd(enum.Enum):
     BOOST = 'USE_BOOST'
     OIL = 'USE_OIL'
 
+CMD_SEARCH = [
+        Cmd.NOP,
+        Cmd.ACCEL,
+        # Cmd.DECEL, # investigate performance without this?
+        Cmd.LEFT,
+        Cmd.RIGHT,
+        Cmd.BOOST
+        # Cmd.OIL left out since it is only used when nothing else is done
+        ]
+
 class Tree:
     def __init__(self, path=[]):
         self.path = path
-        self.children = (Tree(self.path + [c]) for c in Cmd)
+        self.children = (Tree(self.path + [c]) for c in CMD_SEARCH)
 
     def __str__(self):
         return str(self.path)
@@ -247,9 +257,9 @@ class Bot:
     # currently doesn't take offensive advantages into account
     def score(self, state):
         return sum([
-            # state.x,
+            state.x - self.state.x,
             # state.boosts * 7.5,
-            # state.speed,
+            state.speed,
             -state.penalties,
             # state.boosts,
             # state.oils,
@@ -365,7 +375,7 @@ class Bot:
     # done by doing a search for the best move
     def find_cmd(self):
         ## do bfs search of depth search_depth which prunes invalid paths
-        search_depth = 1
+        search_depth = 3
         paths = []
 
         # holds the bfs queue
@@ -396,8 +406,15 @@ class Bot:
         path = paths[0]
         log.info(f'chose path {path}')
 
-        # return first move in the best path
-        return path[0][0]
+        # cmd is the first move in the first path
+        cmd = path[0][0]
+
+        # drop oil if doing nothing else
+        if cmd == Cmd.NOP and self.state.x > self.state.opp_x \
+                and self.state.oils:
+                    cmd = Cmd.OIL
+
+        return cmd
 
     def run(self):
         log.debug('bot started')
