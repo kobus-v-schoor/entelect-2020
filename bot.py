@@ -184,6 +184,9 @@ class State:
     def __hash__(self):
         return hash(self.exc_vars())
 
+    def __repr__(self):
+        return str(self.exc_vars())
+
 class Bot:
     def __init__(self):
         self.next_round = None
@@ -244,10 +247,10 @@ class Bot:
     # currently doesn't take offensive advantages into account
     def score(self, state):
         return sum([
-            state.x,
-            state.boosts * 7.5,
-            state.speed,
-            # -state.penalties,
+            # state.x,
+            # state.boosts * 7.5,
+            # state.speed,
+            -state.penalties,
             # state.boosts,
             # state.oils,
             ])
@@ -325,9 +328,9 @@ class Bot:
         for cmd in path:
             ## check if the state + cmd has been cached
             pk = (cs, cmd)
-            # if pk in self.state_cmd_cache:
-            #     score += self.state_cmd_cache[pk]
-            #     continue
+            if pk in self.state_cmd_cache:
+                cs = self.state_cmd_cache[pk]
+                continue
 
             ## filter out invalid cmds
 
@@ -352,12 +355,9 @@ class Bot:
 
             ## calculate next state
             cs = self.next_state(cs, cmd)
-            # s = self.score(ns)
-            # score += s
-            # cs = ns
 
             ## store in cache
-            # self.state_cmd_cache[pk] = s
+            self.state_cmd_cache[pk] = cs
 
         return self.score(cs)
 
@@ -365,7 +365,7 @@ class Bot:
     # done by doing a search for the best move
     def find_cmd(self):
         ## do bfs search of depth search_depth which prunes invalid paths
-        search_depth = 2
+        search_depth = 1
         paths = []
 
         # holds the bfs queue
