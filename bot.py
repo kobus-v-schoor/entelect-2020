@@ -275,11 +275,11 @@ class Bot:
         if cmd == Cmd.NOP:
             x_off = ns.speed
         elif cmd == Cmd.ACCEL:
-            x_off = ns.speed
             ns.speed = next_speed(ns.speed)
-        elif cmd == Cmd.DECEL:
             x_off = ns.speed
+        elif cmd == Cmd.DECEL:
             ns.speed = prev_speed(ns.speed)
+            x_off = ns.speed
         elif cmd == Cmd.LEFT:
             y_off = -1
             x_off = ns.speed - 1
