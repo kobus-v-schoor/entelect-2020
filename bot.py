@@ -239,10 +239,7 @@ class Bot:
         self.state = State(self.raw_state)
 
         # purge old state cmd cache
-        # removes any entries for which the x value is smaller than the current
-        # x value i.e. states that are before the current position
-        self.state_cmd_cache = {k: v for k, v in self.state_cmd_cache.items() if
-                self.state.x <= k[0].x}
+        self.state_cmd_cache = {}
 
         log.debug('finished parsing state')
 
@@ -251,21 +248,7 @@ class Bot:
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd.value}')
 
-    # returns a numerical score for some chosen path
-    # the higher the score the better the path
-    # will simulate the path's actions and score it accordingly
-    # currently doesn't take offensive advantages into account
-    def score(self, state):
-        return sum([
-            state.x - self.state.x,
-            # state.boosts * 7.5,
-            state.speed,
-            -state.penalties,
-            # state.boosts,
-            # state.oils,
-            ])
-
-    # calculates the new state from the current state based on the taken cmd
+    # calculates the new state from the current state based on a given cmd
     def next_state(self, state, cmd):
         ns = state.copy() # next state variable
 
@@ -289,7 +272,7 @@ class Bot:
         elif cmd == Cmd.BOOST:
             ns.speed = Speed.BOOST_SPEED.value
             ns.boosts -= 1
-            ns.boost_count = 5
+            ns.boost_count = 6 # will be decremented to 5 at end of this func
             ns.boosting = True
             x_off = ns.speed
         elif cmd == Cmd.OIL:
@@ -328,55 +311,67 @@ class Bot:
                 ns.boosting = False
             else:
                 ns.boost_count -= 1
+                if ns.boost_count == 0:
+                    ns.boosting = False
+                    ns.speed = Speed.MAX_SPEED.value
 
         return ns
 
-    # sums all the scores for some amount of actions
-    # also filters out invalid paths
-    def score_path(self, path):
-        cs = self.state.copy() # current state
-        for cmd in path:
-            ## check if the state + cmd has been cached
-            pk = (cs, cmd)
+    # calculates the final state from the current state given a list of actions
+    # if one of the actions are invalid it returns None
+    def final_state(self, actions):
+        cur_state = self.state.copy()
+
+        for cmd in actions:
+            ## check if the state + cmd has been cached - cache holds next state
+            pk = (cur_state, cmd)
             if pk in self.state_cmd_cache:
-                cs = self.state_cmd_cache[pk]
+                cur_state = self.state_cmd_cache[pk]
                 continue
 
             ## filter out invalid cmds
 
             # already in the left-most lane
-            if cmd == Cmd.LEFT and cs.y <= cs.map.min_y:
-                return float('-inf')
+            if cmd == Cmd.LEFT and cur_state.y <= cur_state.map.min_y:
+                return None
             # already in the right-most lane
-            if cmd == Cmd.RIGHT and cs.y >= cs.map.max_y:
-                return float('-inf')
+            if cmd == Cmd.RIGHT and cur_state.y >= cur_state.map.max_y:
+                return None
             # already at max speed
-            if cmd == Cmd.ACCEL and cs.speed >= Speed.MAX_SPEED.value:
-                return float('-inf')
+            if cmd == Cmd.ACCEL and cur_state.speed >= Speed.MAX_SPEED.value:
+                return None
             # already at min speed
-            if cmd == Cmd.DECEL and cs.speed <= Speed.MIN_SPEED.value:
-                return float('-inf')
+            if cmd == Cmd.DECEL and cur_state.speed <= Speed.MIN_SPEED.value:
+                return None
             # doesn't have any oils to use
-            if cmd == Cmd.OIL and cs.oils <= 0:
-                return float('-inf')
+            if cmd == Cmd.OIL and cur_state.oils <= 0:
+                return None
             # doesn't have any boosts to use
-            if cmd == Cmd.BOOST and cs.boosts <= 0:
-                return float('-inf')
+            if cmd == Cmd.BOOST and cur_state.boosts <= 0:
+                return None
+            # already boosting
+            if cmd == Cmd.BOOST and cur_state.boosting:
+                return None
 
             ## calculate next state
-            cs = self.next_state(cs, cmd)
+            next_state = self.next_state(cur_state, cmd)
 
             ## store in cache
-            self.state_cmd_cache[pk] = cs
+            self.state_cmd_cache[pk] = next_state
 
-        return self.score(cs)
+            ## set next state
+            cur_state = next_state
+
+        return cur_state
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def find_cmd(self):
         ## do bfs search of depth search_depth which prunes invalid paths
+        # search depth determines how far into the future we test, e.g a value
+        # of 3 means that we search 3 moves into the future
         search_depth = 3
-        paths = []
+        options = []
 
         # holds the bfs queue
         queue = deque()
@@ -389,30 +384,36 @@ class Bot:
                 queue += list(cur.children)
                 continue
 
-            path = cur.path
-            score = self.score_path(path)
+            actions = cur.path
+            final_state = self.final_state(actions)
 
-            if score > float('-inf'):
+            if final_state is not None:
                 if cur.depth() >= search_depth:
-                    paths.append((path, score))
+                    options.append((actions, final_state))
                 else:
                     queue += list(cur.children)
 
         ## do sorting and selection
+        def score(option):
+            actions, final_state = option
+            return sum([
+                final_state.x - self.state.x,
+                final_state.speed,
+                ])
+
         # sort by scores
-        paths = sorted(paths, key=lambda p: p[1], reverse=True)
+        options = sorted(options, key=score, reverse=True)
 
-        # choose best path
-        path = paths[0]
-        log.info(f'chose path {path}')
+        # choose best option
+        best_option = options[0]
 
-        # cmd is the first move in the first path
-        cmd = path[0][0]
+        # wanted cmd is the first move in the best option
+        cmd = best_option[0][0]
 
         # drop oil if doing nothing else
-        if cmd == Cmd.NOP and self.state.x > self.state.opp_x \
-                and self.state.oils:
-                    cmd = Cmd.OIL
+        # if cmd == Cmd.NOP and self.state.x > self.state.opp_x \
+        #         and self.state.oils:
+        #             cmd = Cmd.OIL
 
         return cmd
 
