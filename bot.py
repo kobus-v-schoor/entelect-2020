@@ -62,11 +62,11 @@ class Cmd(enum.Enum):
 CMD_SEARCH = [
         Cmd.NOP,
         Cmd.ACCEL,
-        # Cmd.DECEL, # investigate performance without this?
+        # Cmd.DECEL, # never used, taken out to improve performance
         Cmd.LEFT,
         Cmd.RIGHT,
-        Cmd.BOOST
-        # Cmd.OIL left out since it is only used when nothing else is done
+        Cmd.BOOST,
+        # Cmd.OIL, # only used when doing nothing else
         ]
 
 class Tree:
@@ -370,7 +370,7 @@ class Bot:
         ## do bfs search of depth search_depth which prunes invalid paths
         # search depth determines how far into the future we test, e.g a value
         # of 3 means that we search 3 moves into the future
-        search_depth = 3
+        search_depth = 2
         options = []
 
         # holds the bfs queue
@@ -399,6 +399,9 @@ class Bot:
             return sum([
                 final_state.x - self.state.x,
                 final_state.speed,
+                # calculates potential benefit of new boosts * avg boost length
+                (final_state.boosts - self.state.boosts) *
+                (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value) * 1.63,
                 ])
 
         # sort by scores
