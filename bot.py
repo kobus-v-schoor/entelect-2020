@@ -111,7 +111,7 @@ class Map:
         for w in world_map:
             mx = w['position']['x']
             my = w['position']['y']
-            self.map[mx - min_x][my - min_y] = w['surfaceObject']
+            self.map[mx - min_x][my - min_y] = Block(w['surfaceObject'])
 
         self.update_xy(x, y)
 
@@ -285,7 +285,7 @@ class Bot:
         for x in range(0 if y_off else 1, x_off + 1):
             if x >= ns.map.rel_max_x:
                 break
-            block = Block(ns.map[x, y_off])
+            block = ns.map[x, y_off]
             if block == Block.EMPTY:
                 pass
             elif block == Block.MUD:
@@ -414,9 +414,35 @@ class Bot:
         cmd = best_option[0][0]
 
         # drop oil if doing nothing else
-        # if cmd == Cmd.NOP and self.state.x > self.state.opp_x \
-        #         and self.state.oils:
-        #             cmd = Cmd.OIL
+        if cmd == Cmd.NOP and self.state.oils:
+            # hard requirements (all must be true)
+            drop = self.state.x > self.state.opp_x
+            drop = drop and self.state.map[-1, 0] == Block.EMPTY
+
+            # soft requirements (any must be true)
+            if drop:
+                # just have too many unused oils
+                drop = self.state.oils > 5
+
+                # other player is right behind us
+                drop = drop or (self.state.y == self.state.opp_y and
+                        (self.state.x - self.state.opp_x) <= 5)
+                # tight spot
+                if not drop:
+                    if self.state.map.rel_min_y < 0:
+                        left_blocked = self.state.map[-1, -1] == Block.MUD
+                    else:
+                        left_blocked = True
+
+                    if self.state.map.rel_max_y > 0:
+                        right_blocked = self.state.map[-1, 1] == Block.MUD
+                    else:
+                        right_blocked = True
+
+                    drop = drop or (left_blocked and right_blocked)
+
+            if drop:
+                cmd = Cmd.OIL
 
         return cmd
 
