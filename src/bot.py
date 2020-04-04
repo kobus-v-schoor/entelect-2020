@@ -299,5 +299,3 @@ class Bot:
 
             # execute next cmd
             self.exec(self.find_cmd())
-
-

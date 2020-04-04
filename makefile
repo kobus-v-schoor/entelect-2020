@@ -5,3 +5,6 @@ zip:
 
 clean:
 	rm -fvr rounds bot.log bot.zip
+
+run:
+	cd src; python3 main.py
