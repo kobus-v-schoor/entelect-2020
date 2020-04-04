@@ -248,6 +248,10 @@ class Bot:
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd.value}')
 
+    # calculates what the probable next state for the opponent will be
+    def opponent_next_state(self, state):
+        return state
+
     # calculates the new state from the current state based on a given cmd
     def next_state(self, state, cmd):
         ns = state.copy() # next state variable
@@ -280,6 +284,9 @@ class Bot:
                 ns.map[-1, 0] = Block.OIL_SPILL
             ns.oils -= 1
             x_off = ns.speed
+
+        # calculate next possible move for opponent
+        ns = self.opponent_next_state(ns)
 
         # check what we drove over
         for x in range(0 if y_off else 1, x_off + 1):
