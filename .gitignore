@@ -2,3 +2,4 @@ rounds
 *.swp
 bot.log
 bot.zip
+__pycache__

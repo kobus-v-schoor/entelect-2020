@@ -1,73 +1,13 @@
-# Author: Kobus van Schoor
-
 import logging
-import os
 import json
-import enum
-import copy
+import os
 from collections import deque
+
+from state import State
+from enums import Speed, next_speed, prev_speed, Block, Cmd, CMD_SEARCH
 
 logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
 log = logging.getLogger(__name__)
-
-class Block(enum.Enum):
-    EMPTY = 0
-    MUD = 1
-    OIL_SPILL = 2
-    OIL_ITEM = 3
-    FINISH_LINE = 4
-    BOOST = 5
-
-class Speed(enum.Enum):
-    MIN_SPEED = 0
-    SPEED_1 = 1
-    SPEED_2 = 6
-    SPEED_3 = 8
-    MAX_SPEED = 9
-
-    INIT_SPEED = 5
-    BOOST_SPEED = 15
-
-SPEED_STEPS = [
-        Speed.MIN_SPEED.value,
-        Speed.SPEED_1.value,
-        Speed.SPEED_2.value,
-        Speed.SPEED_3.value,
-        Speed.MAX_SPEED.value,
-        ]
-
-def next_speed(speed):
-    try:
-        return next(s for s in SPEED_STEPS if s > speed)
-    except StopIteration:
-        return SPEED_STEPS[-1]
-
-def prev_speed(speed):
-    try:
-        return next(s for s in SPEED_STEPS[::-1] if s < speed)
-    except StopIteration:
-        return SPEED_STEPS[0]
-
-class Cmd(enum.Enum):
-    NOP = 'NOTHING'
-
-    ACCEL = 'ACCELERATE'
-    DECEL = 'DECELERATE'
-    LEFT = 'TURN_LEFT'
-    RIGHT = 'TURN_RIGHT'
-
-    BOOST = 'USE_BOOST'
-    OIL = 'USE_OIL'
-
-CMD_SEARCH = [
-        Cmd.NOP,
-        Cmd.ACCEL,
-        # Cmd.DECEL, # never used, taken out to improve performance
-        Cmd.LEFT,
-        Cmd.RIGHT,
-        Cmd.BOOST,
-        # Cmd.OIL, # only used when doing nothing else
-        ]
 
 class Tree:
     def __init__(self, path=[]):
@@ -83,122 +23,9 @@ class Tree:
     def depth(self):
         return len(self.path)
 
-class Map:
-    def __init__(self, x, y, world_map):
-        # flatten map
-        world_map = [w for row in world_map for w in row]
-
-        # find bounds
-        min_x = min(world_map, key=lambda w:w['position']['x'])['position']['x']
-        max_x = max(world_map, key=lambda w:w['position']['x'])['position']['x']
-        min_y = min(world_map, key=lambda w:w['position']['y'])['position']['y']
-        max_y = max(world_map, key=lambda w:w['position']['y'])['position']['y']
-
-        # store absolute minimum and maximum values
-        self.min_x = min_x
-        self.max_x = max_x
-        self.min_y = min_y
-        self.max_y = max_y
-
-        # generate map
-        rows = max_y - min_y + 1
-        cols = max_x - min_x + 1
-
-        # order: map[x][y]
-        self.map = [[Block.EMPTY for _ in range(rows)] for _ in range(cols)]
-
-        # fill in map
-        for w in world_map:
-            mx = w['position']['x']
-            my = w['position']['y']
-            self.map[mx - min_x][my - min_y] = Block(w['surfaceObject'])
-
-        self.update_xy(x, y)
-
-    def update_xy(self, x, y):
-        # player position
-        self.x = x
-        self.y = y
-
-        # these are relative, meaning that if rel_min_y == 0 then you cannot
-        # move further to the right - same goes for rel_max_y, if rel_max_y == 0
-        # you cannot go further to the left
-        self.rel_min_x = self.min_x - x
-        self.rel_max_x = self.max_x - x
-        self.rel_min_y = self.min_y - y
-        self.rel_max_y = self.max_y - y
-
-    # returns the map item relative to the current position with order [x,y]
-    # this means that [0, 0] returns the current block, [1,-1] returns one block
-    # to the right and one block back
-    # use rel_min and rel_max variables for bounds
-    def __getitem__(self, key):
-        x, y = key
-
-        if self.rel_min_x <= x <= self.rel_max_x:
-            if self.rel_min_y <= y <= self.rel_max_y:
-                return self.map[x - self.rel_min_x][y - self.rel_min_y]
-        raise IndexError
-
-    def __setitem__(self, key, val):
-        x, y = key
-
-        if self.rel_min_x <= x <= self.rel_max_x:
-            if self.rel_min_y <= y <= self.rel_max_y:
-                self.map[x - self.rel_min_x][y - self.rel_min_y] = val
-                return
-        raise IndexError
-
-class State:
-    def __init__(self, raw_state):
-        # powerups
-        powerups = raw_state['player']['powerups']
-        self.boosts = len([x for x in powerups if x == 'BOOST'])
-        self.oils = len([x for x in powerups if x == 'OIL'])
-
-        # current boosting state
-        self.boosting = raw_state['player']['boosting']
-        self.boost_count = raw_state['player']['boostCounter']
-
-        # position and speed
-        self.speed = raw_state['player']['speed']
-        self.x = raw_state['player']['position']['x']
-        self.y = raw_state['player']['position']['y']
-
-        # opponent position and speed
-        self.opp_x = raw_state['opponent']['position']['x']
-        self.opp_y = raw_state['opponent']['position']['y']
-        self.opp_speed = raw_state['opponent']['speed']
-
-        # used to keep track of penalties incurred
-        self.penalties = 0
-
-        # map
-        self.map = Map(self.x, self.y, raw_state['worldMap'])
-
-    def update_map(self):
-        self.map.update_xy(self.x, self.y)
-
-    # returns a deep copy of this state
-    def copy(self):
-        return copy.deepcopy(self)
-
-    # drops map from vars to exclude it from hashing and equality checks
-    def exc_vars(self):
-        return tuple([v for v in vars(self).values() if not type(v) is Map])
-
-    def __eq__(self, other):
-        return self.exc_vars() == other.exc_vars()
-
-    # this hash will be the same for equal states
-    def __hash__(self):
-        return hash(self.exc_vars())
-
-    def __repr__(self):
-        return str(self.exc_vars())
-
 class Bot:
     def __init__(self):
+        log.info('creating bot')
         self.next_round = None
         self.state = None
         self.finished = False
@@ -474,7 +301,3 @@ class Bot:
             self.exec(self.find_cmd())
 
 
-if __name__ == '__main__':
-    log.info('starting bot')
-    bot = Bot()
-    bot.run()

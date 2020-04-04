@@ -2,7 +2,7 @@
 	"author": "Kobus van Schoor",
 	"email": "v.schoor.kobus@gmail.com",
 	"nickName": "sonic-sloth",
-	"botLocation": "/",
-	"botFileName": "bot.py",
+	"botLocation": "/src/",
+	"botFileName": "main.py",
 	"botLanguage": "python3"
 }
