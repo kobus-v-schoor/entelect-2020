@@ -3,8 +3,8 @@ import json
 import os
 from collections import deque
 
-from state import State
-from enums import Speed, next_speed, prev_speed, Block, Cmd, CMD_SEARCH
+from state import State, next_state, final_state
+from enums import Speed, Block, Cmd, CMD_SEARCH
 from map import GlobalMap
 
 logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
@@ -80,129 +80,6 @@ class Bot:
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd.value}')
 
-    # calculates what the probable next state for the opponent will be
-    def opponent_next_state(self, state):
-        return state
-
-    # calculates the new state from the current state based on a given cmd
-    def next_state(self, state, cmd):
-        ns = state.copy() # next state variable
-
-        # apply movement modifications
-        x_off, y_off = 0, 0
-
-        if cmd == Cmd.NOP:
-            x_off = ns.speed
-        elif cmd == Cmd.ACCEL:
-            ns.speed = next_speed(ns.speed)
-            x_off = ns.speed
-        elif cmd == Cmd.DECEL:
-            ns.speed = prev_speed(ns.speed)
-            x_off = ns.speed
-        elif cmd == Cmd.LEFT:
-            y_off = -1
-            x_off = ns.speed - 1
-        elif cmd == Cmd.RIGHT:
-            y_off = 1
-            x_off = ns.speed - 1
-        elif cmd == Cmd.BOOST:
-            ns.speed = Speed.BOOST_SPEED.value
-            ns.boosts -= 1
-            ns.boost_count = 6 # will be decremented to 5 at end of this func
-            ns.boosting = True
-            x_off = ns.speed
-        elif cmd == Cmd.OIL:
-            if ns.x - 1 < ns.map.max_x:
-                ns.map[-1, 0] = Block.OIL_SPILL
-            ns.oils -= 1
-            x_off = ns.speed
-
-        # calculate next possible move for opponent
-        ns = self.opponent_next_state(ns)
-
-        # check what we drove over
-        for x in range(0 if y_off else 1, x_off + 1):
-            if x >= ns.map.rel_max_x:
-                break
-            block = ns.map[x, y_off]
-            if block == Block.EMPTY:
-                pass
-            elif block == Block.MUD:
-                ns.speed = prev_speed(ns.speed)
-                ns.penalties += 1
-            elif block == Block.OIL_SPILL:
-                ns.speed = prev_speed(ns.speed)
-                ns.penalties += 1
-            elif block == Block.OIL_ITEM:
-                ns.oils += 1
-            elif block == Block.BOOST:
-                ns.boosts += 1
-
-        ns.x += x_off
-        ns.y += y_off
-        ns.update_map()
-
-        # keep track of boosting
-        if ns.boosting:
-            # hit something or decel
-            if ns.speed != Speed.BOOST_SPEED.value:
-                ns.boost_count = 0
-                ns.boosting = False
-            else:
-                ns.boost_count -= 1
-                if ns.boost_count == 0:
-                    ns.boosting = False
-                    ns.speed = Speed.MAX_SPEED.value
-
-        return ns
-
-    # calculates the final state from the current state given a list of actions
-    # if one of the actions are invalid it returns None
-    def final_state(self, actions):
-        cur_state = self.state.copy()
-
-        for cmd in actions:
-            ## check if the state + cmd has been cached - cache holds next state
-            pk = (cur_state, cmd)
-            if pk in self.state_cmd_cache:
-                cur_state = self.state_cmd_cache[pk]
-                continue
-
-            ## filter out invalid cmds
-
-            # already in the left-most lane
-            if cmd == Cmd.LEFT and cur_state.y <= cur_state.map.min_y:
-                return None
-            # already in the right-most lane
-            if cmd == Cmd.RIGHT and cur_state.y >= cur_state.map.max_y:
-                return None
-            # already at max speed
-            if cmd == Cmd.ACCEL and cur_state.speed >= Speed.MAX_SPEED.value:
-                return None
-            # already at min speed
-            if cmd == Cmd.DECEL and cur_state.speed <= Speed.MIN_SPEED.value:
-                return None
-            # doesn't have any oils to use
-            if cmd == Cmd.OIL and cur_state.oils <= 0:
-                return None
-            # doesn't have any boosts to use
-            if cmd == Cmd.BOOST and cur_state.boosts <= 0:
-                return None
-            # already boosting
-            if cmd == Cmd.BOOST and cur_state.boosting:
-                return None
-
-            ## calculate next state
-            next_state = self.next_state(cur_state, cmd)
-
-            ## store in cache
-            self.state_cmd_cache[pk] = next_state
-
-            ## set next state
-            cur_state = next_state
-
-        return cur_state
-
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def find_cmd(self):
@@ -216,6 +93,9 @@ class Bot:
         queue = deque()
         queue.append(Tree())
 
+        # will hold the cache state
+        cache = {}
+
         while queue:
             cur = queue.popleft()
 
@@ -224,22 +104,22 @@ class Bot:
                 continue
 
             actions = cur.path
-            final_state = self.final_state(actions)
+            fstate = final_state(self.state, actions, cache)
 
-            if final_state is not None:
+            if fstate is not None:
                 if cur.depth() >= search_depth:
-                    options.append((actions, final_state))
+                    options.append((actions, fstate))
                 else:
                     queue += list(cur.children)
 
         ## do sorting and selection
         def score(option):
-            actions, final_state = option
+            actions, fstate = option
             return sum([
-                final_state.x - self.state.x,
-                final_state.speed,
+                fstate.x - self.state.x,
+                fstate.speed,
                 # calculates potential benefit of new boosts * avg boost length
-                (final_state.boosts - self.state.boosts) *
+                (fstate.boosts - self.state.boosts) *
                 (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value) * 1.63,
                 ])
 
