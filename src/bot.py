@@ -5,6 +5,7 @@ from collections import deque
 
 from state import State
 from enums import Speed, next_speed, prev_speed, Block, Cmd, CMD_SEARCH
+from map import GlobalMap
 
 logging.basicConfig(filename='bot.log', filemode='w', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ class Bot:
         log.info('creating bot')
         self.next_round = None
         self.state = None
+        self.global_map = GlobalMap(x_size=1500, y_size=4)
         self.finished = False
         self.state_cmd_cache = {}
 
@@ -64,6 +66,9 @@ class Bot:
 
         # parse state vars
         self.state = State(self.raw_state)
+
+        # update global map
+        self.state.map.update_global_map(self.global_map)
 
         # purge old state cmd cache
         self.state_cmd_cache = {}

@@ -1,5 +1,22 @@
 from enums import Block
 
+class GlobalMap:
+    def __init__(self, x_size, y_size):
+        # map dimensions are flipped since generally y << x - this leads to
+        # better memory efficiency since we have a few long lists compared to
+        # many small lists. will still be x, y in get_item
+        self.map = [[Block.EMPTY for _ in range(x_size)] for _ in range(y_size)]
+
+    # x and y are 1-indexed to be compatible with game format
+    def __setitem__(self, idx, val):
+        x, y = idx
+        self.map[y-1][x-1] = val
+
+    # x and y are 1-indexed to be compatible with game format
+    def __getitem__(self, idx):
+        x, y = idx
+        return self.map[y-1][x-1]
+
 class Map:
     def __init__(self, x, y, world_map):
         # flatten map
@@ -44,6 +61,12 @@ class Map:
         self.rel_max_x = self.max_x - x
         self.rel_min_y = self.min_y - y
         self.rel_max_y = self.max_y - y
+
+    # updates a given GlobalMap with the values in this map
+    def update_global_map(self, global_map):
+        for x, col in enumerate(self.map):
+            for y, val in enumerate(col):
+                global_map[self.min_x + x, self.min_y + y] = val
 
     # returns the map item relative to the current position with order [x,y]
     # this means that [0, 0] returns the current block, [1,-1] returns one block
