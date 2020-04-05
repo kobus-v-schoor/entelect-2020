@@ -51,6 +51,12 @@ class State:
     def __repr__(self):
         return str(self.exc_vars())
 
+# predict oppenent's next state
+# NOTE: modifies the state variable directly (different from next_state)
+# TODO: implement better model, for now just assume their doing a NOOP
+def opp_next_state(state):
+    state.opp_x += state.opp_speed
+
 # calculates the new state from the current state based on a given cmd
 def next_state(state, cmd):
     ns = state.copy() # next state variable
@@ -84,11 +90,30 @@ def next_state(state, cmd):
         ns.oils -= 1
         x_off = ns.speed
 
+    same_lane = ns.y == ns.opp_y
+
+    opp_next_state(ns)
+
     # check what we drove over
     for x in range(0 if y_off else 1, x_off + 1):
         if x >= ns.map.rel_max_x:
             break
+
+        if ns.x + x == ns.opp_x and ns.y + y_off == ns.opp_y:
+            if same_lane:
+                # ran into opponent from behind
+                x_off = x - 1 # we're stuck behind them
+            elif x == x_off:
+                # ended up in the same block
+                y_off = 0
+                x_off -= 1
+                ns.opp_x -= 1
+            else:
+                continue
+            break
+
         block = ns.map[x, y_off]
+
         if block == Block.EMPTY:
             pass
         elif block == Block.MUD:
