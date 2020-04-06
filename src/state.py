@@ -58,8 +58,15 @@ class State:
 def next_state(state, cmd):
     state = state.copy()
 
-    ## calculate trajectories (x offset, y offset and new speed)
+    ## keep track of boosting
+    if state.boosting:
+        state.boost_count -= 1
+        # boost ran out
+        if state.boost_count == 0:
+            state.boosting = False
+            state.speed = Speed.MAX_SPEED.value
 
+    ## calculate trajectories (x offset, y offset and new speed)
     def get_trajectory(x, y, speed, cmd):
         x_off, y_off = 0, 0
 
@@ -104,15 +111,12 @@ def next_state(state, cmd):
     if cmd == Cmd.BOOST:
         state.boosts -= 1
         state.boosting = True
-        # will be decremented to 5 later in this function
-        state.boost_count = 6
+        state.boost_count = 5
 
     ## check for collisions
-
     # TODO implement collision logic
 
     ## check path for penalties and obstructions that player ran into
-
     def check_path(x, y, x_off, y_off, speed):
         oils, boosts, penalties = 0, 0, 0
 
@@ -125,7 +129,7 @@ def next_state(state, cmd):
             if block == Block.EMPTY:
                 pass
             elif block == Block.MUD or block == Block.OIL_SPILL:
-                speed = prev_speed(speed)
+                speed = max(Speed.SPEED_1.value, prev_speed(speed))
                 penalties += 1
             elif block == Block.OIL_ITEM:
                 oils += 1
@@ -160,20 +164,10 @@ def next_state(state, cmd):
     state.opp_y += y_off
     state.opp_speed = speed
 
-    ## keep track of boosting
-
-    if state.boosting:
-        # hit something along the way or decelerated
-        if state.speed != Speed.BOOST_SPEED.value:
-            state.boost_count = 0
-            state.boosting = False
-        else:
-            state.boost_count -= 1
-            # boost ran out
-            if state.boost_count <= 1:
-                state.boosting = False
-                # next round's speed will be MAX_SPEED
-                state.speed = Speed.MAX_SPEED.value
+    ## check if boost was cancelled
+    if state.boosting and state.speed != Speed.BOOST_SPEED.value:
+        state.boosting = False
+        state.boost_count = 0
 
     return state
 
