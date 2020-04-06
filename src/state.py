@@ -49,7 +49,8 @@ class State:
         return hash(self.exc_vars())
 
     def __repr__(self):
-        return str(self.exc_vars())
+        return str({k: vars(self)[k] for k in vars(self) if not
+            type(vars(self)[k]) is Map})
 
 # calculates the new state from the current state based on a given cmd
 # NOTE this function assumes that cmd is a valid command for the given state to
@@ -169,7 +170,7 @@ def next_state(state, cmd):
         else:
             state.boost_count -= 1
             # boost ran out
-            if state.boost_count == 0:
+            if state.boost_count <= 1:
                 state.boosting = False
                 # next round's speed will be MAX_SPEED
                 state.speed = Speed.MAX_SPEED.value

@@ -10,7 +10,7 @@ class Block(enum.Enum):
 
 class Speed(enum.Enum):
     MIN_SPEED = 0
-    SPEED_1 = 1
+    SPEED_1 = 3
     SPEED_2 = 6
     SPEED_3 = 8
     MAX_SPEED = 9
