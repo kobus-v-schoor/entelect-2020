@@ -136,7 +136,7 @@ class Bot:
         if cmd == Cmd.NOP and self.state.oils:
             # hard requirements (all must be true)
             drop = self.state.x > self.state.opp_x
-            drop = drop and self.state.map[-1, 0] == Block.EMPTY
+            drop = drop and self.state.map.rel(-1, 0) == Block.EMPTY
 
             # soft requirements (any must be true)
             if drop:
@@ -149,12 +149,12 @@ class Bot:
                 # tight spot
                 if not drop:
                     if self.state.map.rel_min_y < 0:
-                        left_blocked = self.state.map[-1, -1] == Block.MUD
+                        left_blocked = self.state.map.rel(-1, -1) == Block.MUD
                     else:
                         left_blocked = True
 
                     if self.state.map.rel_max_y > 0:
-                        right_blocked = self.state.map[-1, 1] == Block.MUD
+                        right_blocked = self.state.map.rel(-1, 1) == Block.MUD
                     else:
                         right_blocked = True
 

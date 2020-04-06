@@ -51,99 +51,130 @@ class State:
     def __repr__(self):
         return str(self.exc_vars())
 
-# predict oppenent's next state
-# NOTE: modifies the state variable directly (different from next_state)
-# TODO: implement better model, for now just assume their doing a NOOP
-def opp_next_state(state):
-    state.opp_x += state.opp_speed
-
 # calculates the new state from the current state based on a given cmd
+# NOTE this function assumes that cmd is a valid command for the given state to
+# remove reduntant checks for the validity of the commands
 def next_state(state, cmd):
-    ns = state.copy() # next state variable
+    state = state.copy()
 
-    # apply movement modifications
-    x_off, y_off = 0, 0
+    ## calculate trajectories (x offset, y offset and new speed)
 
-    if cmd == Cmd.NOP:
-        x_off = ns.speed
-    elif cmd == Cmd.ACCEL:
-        ns.speed = next_speed(ns.speed)
-        x_off = ns.speed
-    elif cmd == Cmd.DECEL:
-        ns.speed = prev_speed(ns.speed)
-        x_off = ns.speed
-    elif cmd == Cmd.LEFT:
-        y_off = -1
-        x_off = ns.speed - 1
-    elif cmd == Cmd.RIGHT:
-        y_off = 1
-        x_off = ns.speed - 1
-    elif cmd == Cmd.BOOST:
-        ns.speed = Speed.BOOST_SPEED.value
-        ns.boosts -= 1
-        ns.boost_count = 6 # will be decremented to 5 at end of this func
-        ns.boosting = True
-        x_off = ns.speed
-    elif cmd == Cmd.OIL:
-        if ns.x - 1 < ns.map.max_x:
-            ns.map[-1, 0] = Block.OIL_SPILL
-        ns.oils -= 1
-        x_off = ns.speed
+    def get_trajectory(x, y, speed, cmd):
+        x_off, y_off = 0, 0
 
-    same_lane = ns.y == ns.opp_y
+        if cmd == Cmd.NOP:
+            x_off = speed
+        elif cmd == Cmd.ACCEL:
+            speed = next_speed(speed)
+            x_off = speed
+        elif cmd == Cmd.DECEL:
+            speed = prev_speed(speed)
+            x_off = speed
+        elif cmd == Cmd.LEFT:
+            y_off = -1
+            x_off = speed - 1
+        elif cmd == Cmd.RIGHT:
+            y_off = 1
+            x_off = speed - 1
+        elif cmd == Cmd.BOOST:
+            speed = Speed.BOOST_SPEED.value
+            x_off = speed
+        elif cmd == Cmd.OIL:
+            x_off = speed
 
-    opp_next_state(ns)
+        return (x_off, y_off, speed)
 
-    # check what we drove over
-    for x in range(0 if y_off else 1, x_off + 1):
-        if x >= ns.map.rel_max_x:
-            break
+    bot_traj = get_trajectory(state.x, state.y, state.speed, cmd)
+    # TODO actually try and guess what the opponent will do
+    opp_traj = get_trajectory(state.opp_x, state.opp_y, state.opp_speed,
+            Cmd.ACCEL)
 
-        if ns.x + x == ns.opp_x and ns.y + y_off == ns.opp_y:
-            if same_lane:
-                # ran into opponent from behind
-                x_off = x - 1 # we're stuck behind them
-            elif x == x_off:
-                # ended up in the same block
-                y_off = 0
-                x_off -= 1
-                ns.opp_x -= 1
-            else:
-                continue
-            break
+    ## check powerups that were used and consume them
 
-        block = ns.map[x, y_off]
+    # drop oil
+    if cmd == Cmd.OIL:
+        state.oils -= 1
+        # NOTE this only allows dropping oil in our current view, but this is
+        # fine since it is the only place we would be able to drop an oil anyway
+        if state.map.min_x <= state.x - 1 <= state.map.max_x:
+            state.map[state.x - 1, state.y] = Block.OIL_SPILL
 
-        if block == Block.EMPTY:
-            pass
-        elif block == Block.MUD:
-            ns.speed = prev_speed(ns.speed)
-            ns.penalties += 1
-        elif block == Block.OIL_SPILL:
-            ns.speed = prev_speed(ns.speed)
-            ns.penalties += 1
-        elif block == Block.OIL_ITEM:
-            ns.oils += 1
-        elif block == Block.BOOST:
-            ns.boosts += 1
+    # consume boost
+    if cmd == Cmd.BOOST:
+        state.boosts -= 1
+        state.boosting = True
+        # will be decremented to 5 later in this function
+        state.boost_count = 6
 
-    ns.x += x_off
-    ns.y += y_off
-    ns.update_map()
+    ## check for collisions
 
-    # keep track of boosting
-    if ns.boosting:
-        # hit something or decel
-        if ns.speed != Speed.BOOST_SPEED.value:
-            ns.boost_count = 0
-            ns.boosting = False
+    # TODO implement collision logic
+
+    ## check path for penalties and obstructions that player ran into
+
+    def check_path(x, y, x_off, y_off, speed):
+        oils, boosts, penalties = 0, 0, 0
+
+        for cx in range(0 if y_off else 1, x_off + 1):
+            if x + cx > state.map.max_x: # we're outside our current view
+                break
+
+            block = state.map[x + cx, y + y_off]
+
+            if block == Block.EMPTY:
+                pass
+            elif block == Block.MUD or block == Block.OIL_SPILL:
+                speed = prev_speed(speed)
+                penalties += 1
+            elif block == Block.OIL_ITEM:
+                oils += 1
+            elif block == Block.BOOST:
+                boosts += 1
+
+        return (speed, oils, boosts, penalties)
+
+    bot_path = check_path(state.x, state.y, *bot_traj)
+    opp_path = check_path(state.opp_x, state.opp_y, *opp_traj)
+
+    ## update this bot's state
+
+    x_off, y_off, _ = bot_traj
+    speed, oils, boosts, penalties = bot_path
+
+    state.x += x_off
+    state.y += y_off
+    state.speed = speed
+    state.oils += oils
+    state.boosts += boosts
+    state.penalties += penalties
+
+    state.update_map()
+
+    ## update opponent's state
+
+    x_off, y_off, _ = opp_traj
+    speed = opp_path[0]
+
+    state.opp_x += x_off
+    state.opp_y += y_off
+    state.opp_speed = speed
+
+    ## keep track of boosting
+
+    if state.boosting:
+        # hit something along the way or decelerated
+        if state.speed != Speed.BOOST_SPEED.value:
+            state.boost_count = 0
+            state.boosting = False
         else:
-            ns.boost_count -= 1
-            if ns.boost_count == 0:
-                ns.boosting = False
-                ns.speed = Speed.MAX_SPEED.value
+            state.boost_count -= 1
+            # boost ran out
+            if state.boost_count == 0:
+                state.boosting = False
+                # next round's speed will be MAX_SPEED
+                state.speed = Speed.MAX_SPEED.value
 
-    return ns
+    return state
 
 # calculates the final state from the current state given a list of actions
 # if one of the actions are invalid it returns None

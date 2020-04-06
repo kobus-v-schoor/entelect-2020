@@ -1,3 +1,5 @@
+import copy
+
 from enums import Block
 
 class GlobalMap:
@@ -6,17 +8,31 @@ class GlobalMap:
         # better memory efficiency since we have a few long lists compared to
         # many small lists. will still be x, y in get_item
         self.map = [[Block.EMPTY for _ in range(x_size)] for _ in range(y_size)]
+        self.min_x, self.min_y = 1, 1
+        self.max_x, self.max_y = x_size, y_size
 
     # x and y are 1-indexed to be compatible with game format
     def __setitem__(self, idx, val):
         x, y = idx
-        self.map[y-1][x-1] = val
+        if self.min_x <= x <= self.max_x:
+            if self.min_y <= y <= self.max_y:
+                self.map[y - self.min_y][x - self.min_x] = val
+                return
+        raise IndexError
 
     # x and y are 1-indexed to be compatible with game format
     def __getitem__(self, idx):
         x, y = idx
-        return self.map[y-1][x-1]
+        if self.min_x <= x <= self.max_x:
+            if self.min_y <= y <= self.max_y:
+                return self.map[y - self.min_y][x - self.min_x]
+        raise IndexError
 
+# acts as a mutable view into the global map - any changes made here doesn't
+# reflect on the global map.
+# if a coordinate is accessed that is outside of this map's range it will return
+# the value from the global map - not this only works for retrieving a value and
+# not setting a value
 class Map:
     def __init__(self, x, y, world_map):
         # flatten map
@@ -64,27 +80,44 @@ class Map:
 
     # updates a given GlobalMap with the values in this map
     def update_global_map(self, global_map):
+        self.global_map = global_map
         for x, col in enumerate(self.map):
             for y, val in enumerate(col):
                 global_map[self.min_x + x, self.min_y + y] = val
 
-    # returns the map item relative to the current position with order [x,y]
-    # this means that [0, 0] returns the current block, [1,-1] returns one block
-    # to the right and one block back
-    # use rel_min and rel_max variables for bounds
-    def __getitem__(self, key):
-        x, y = key
-
+    # returns the map item at [x, y] where x and y are relative to the player's
+    # current position.
+    def rel(self, x, y):
         if self.rel_min_x <= x <= self.rel_max_x:
             if self.rel_min_y <= y <= self.rel_max_y:
                 return self.map[x - self.rel_min_x][y - self.rel_min_y]
         raise IndexError
 
+    # returns the map item at [x, y]
+    def __getitem__(self, key):
+        x, y = key
+
+        if self.min_y <= y <= self.max_y:
+            if self.min_x <= x <= self.max_x:
+                return self.map[x - self.min_x][y - self.min_y]
+            if self.global_map.min_x <= x <= self.global_map.max_x:
+                return self.global_map[x, y]
+        raise IndexError
+
     def __setitem__(self, key, val):
         x, y = key
 
-        if self.rel_min_x <= x <= self.rel_max_x:
-            if self.rel_min_y <= y <= self.rel_max_y:
-                self.map[x - self.rel_min_x][y - self.rel_min_y] = val
+        if self.min_x <= x <= self.max_x:
+            if self.min_y <= y <= self.max_y:
+                self.map[x - self.min_x][y - self.min_y] = val
                 return
         raise IndexError
+
+    # everything except the global_map is deep-copied
+    def __deepcopy__(self, memo):
+        # copies all members (but shallow copies map + global map)
+        cm = copy.copy(self)
+        # make map a deep copy (but keep the global map shallow)
+        cm.map = copy.deepcopy(self.map)
+
+        return cm
