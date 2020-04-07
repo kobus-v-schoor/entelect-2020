@@ -86,7 +86,7 @@ class Bot:
         ## do bfs search of depth search_depth which prunes invalid paths
         # search depth determines how far into the future we test, e.g a value
         # of 3 means that we search 3 moves into the future
-        search_depth = 2
+        search_depth = 4
         options = []
 
         # holds the bfs queue
@@ -107,10 +107,13 @@ class Bot:
             fstate = final_state(self.state, actions, cache)
 
             if fstate is not None:
-                if cur.depth() >= search_depth:
-                    options.append((actions, fstate))
-                else:
+                options.append((actions, fstate))
+                if fstate.x > self.state.map.max_x:
+                    search_depth = min(search_depth, cur.depth())
+                if cur.depth() < search_depth:
                     queue += list(cur.children)
+
+        options = [o for o in options if len(o[0]) == search_depth]
 
         ## do sorting and selection
         def score(option):
