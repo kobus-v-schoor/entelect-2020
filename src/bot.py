@@ -121,6 +121,8 @@ class Bot:
                 # calculates potential benefit of new boosts * avg boost length
                 (fstate.boosts - self.state.boosts) *
                 (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value) * 1.63,
+                -(fstate.opp_x - self.state.opp_x),
+                -fstate.opp_speed,
                 ])
 
         # sort by scores
