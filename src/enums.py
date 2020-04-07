@@ -56,5 +56,5 @@ CMD_SEARCH = [
         Cmd.LEFT,
         Cmd.RIGHT,
         Cmd.BOOST,
-        # Cmd.OIL, # only used when doing nothing else
+        Cmd.OIL,
         ]
