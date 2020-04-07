@@ -90,7 +90,7 @@ def next_state(state, cmd):
         elif cmd == Cmd.OIL:
             x_off = speed
 
-        return (x_off, y_off, speed)
+        return [x_off, y_off, speed]
 
     bot_traj = get_trajectory(state.x, state.y, state.speed, cmd)
     # TODO actually try and guess what the opponent will do
@@ -114,7 +114,32 @@ def next_state(state, cmd):
         state.boost_count = 5
 
     ## check for collisions
-    # TODO implement collision logic
+    # two types: end up on same block or fender-bender from behind
+
+    # run-in from behind - occurs when in the same lane and one bot tries to
+    # drive through the other. conditions:
+    # started in the same lane
+    # stayed in the same lane
+    # one passed the other during the round
+    if ((state.y == state.opp_y) and
+            (bot_traj[1] == opp_traj[1] == 0) and
+            ((state.x > state.opp_x) != (state.x + bot_traj[0] > state.opp_x +
+                opp_traj[0]))):
+                # whoever is behind cannot pass the one in front
+                if state.x > state.opp_x:
+                    opp_traj[0] = state.x + bot_traj[0] - 1 - state.opp_x
+                else:
+                    bot_traj[0] = state.opp_x + opp_traj[0] - 1 - state.x
+
+    # same destination block
+    if (state.x + bot_traj[0] == state.opp_x + opp_traj[0] and
+            state.y + bot_traj[1] == state.opp_y + opp_traj[1]):
+        # -1 speed penalty
+        bot_traj[0] -= 1
+        opp_traj[0] -= 1
+        # take back to original lane
+        bot_traj[1] = 0
+        opp_traj[1] = 0
 
     ## check path for penalties and obstructions that player ran into
     def check_path(x, y, x_off, y_off, speed):
