@@ -31,8 +31,9 @@ track_map = [[' ' for _ in range(y_size)] for _ in range(x_size)]
 blocks_behind = 5
 blocks_ahead = 20
 
-fps = 20
-spr = 0.1 # seconds per round
+fps = 10
+spr = 1 # seconds per round
+round_delay = 1 # seconds delay after every round
 
 def clear_line():
     sys.stdout.write('\r')
@@ -103,6 +104,7 @@ while os.path.isdir(round_dir):
     for frame in range(int(spr * fps)):
         pos = {} # holds all the positions of all the players
         players = {}
+        prev = {}
         for idx in range(player_count):
             prev_x = hist[-2][idx]['x']
             nxt_x = hist[-1][idx]['x']
@@ -114,9 +116,15 @@ while os.path.isdir(round_dir):
             pk = (cur_x-1, nxt_y-1)
             pos[pk] = hist[-1][idx]['id']-1
             players[pk] = hist[-2][idx]
+            prev[pk] = (prev_x, nxt_y)
 
         for p in pos:
-            render_map(*p, pos, players[p])
+            if round_delay:
+                render_map(*prev[p], pos, players[p])
+            else:
+                render_map(*p, pos, players[p])
         time.sleep(1 / fps)
         if frame + 1 < spr * fps:
             clear_renders(len(pos))
+    if round_delay:
+        time.sleep(round_delay)
