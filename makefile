@@ -5,7 +5,7 @@ zip:
 	zip bot.zip $(files)
 
 clean:
-	rm -fvr rounds bot.log bot.zip
+	rm -fvr bot.zip src/rounds src/bot.log src/__pycache__
 
 run:
 	cd src; python3 main.py
