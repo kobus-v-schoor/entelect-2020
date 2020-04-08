@@ -5,6 +5,7 @@ import os
 import sys
 import math
 import time
+import sys
 
 PLAYER = ['1', '2']
 EMPTY_BLOCK = '░'
@@ -33,7 +34,7 @@ blocks_ahead = 20
 
 fps = 10
 spr = 1 # seconds per round
-round_delay = 1 # seconds delay after every round
+round_delay = 0 # seconds delay after every round
 
 def clear_line():
     sys.stdout.write('\r')
@@ -69,8 +70,13 @@ def clear_renders(renders):
     for _ in range(renders):
         clear_n_lines(9)
 
-while os.path.isdir(round_dir):
-    with open(os.path.join(round_dir, 'GlobalState.json'), 'r') as state_file:
+pwd = '.'
+if len(sys.argv) > 1:
+    pwd = sys.argv[1]
+
+while os.path.isdir(os.path.join(pwd, round_dir)):
+    with open(os.path.join(os.path.join(pwd, round_dir), 'GlobalState.json'),
+            'r') as state_file:
         state = json.load(state_file)
     rnd += 1
     round_dir = round_dir_fmt.format(rnd)
