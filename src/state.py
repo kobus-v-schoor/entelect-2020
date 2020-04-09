@@ -119,10 +119,10 @@ def next_state(state, cmd):
     # run-in from behind - occurs when in the same lane and one bot tries to
     # drive through the other. conditions:
     # started in the same lane
-    # stayed in the same lane
+    # ended in the same lane
     # one passed the other during the round
     if ((state.y == state.opp_y) and
-            (bot_traj[1] == opp_traj[1] == 0) and
+            (bot_traj[1] == opp_traj[1]) and
             ((state.x > state.opp_x) != (state.x + bot_traj[0] > state.opp_x +
                 opp_traj[0]))):
                 # whoever is behind cannot pass the one in front
