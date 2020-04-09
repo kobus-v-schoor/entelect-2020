@@ -33,6 +33,9 @@ class Bot:
         self.finished = False
         self.state_cmd_cache = {}
 
+        with open('weights.json', 'r') as wfile:
+            self.weights = json.load(wfile)
+
     def wait_for_next_round(self):
         log.debug('waiting for next round')
         self.next_round = int(input())
@@ -118,15 +121,17 @@ class Bot:
         ## do sorting and selection
         def score(option):
             actions, fstate = option
-            return sum([
-                fstate.x - self.state.x,
-                fstate.speed,
-                # calculates potential benefit of new boosts * avg boost length
-                (fstate.boosts - self.state.boosts) *
-                (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value) * 1.63,
-                -(fstate.opp_x - self.state.opp_x),
-                -fstate.opp_speed,
-                ])
+            total = 0
+
+            total += self.weights['pos'] * (fstate.x - self.state.x)
+            total += self.weights['speed'] * fstate.speed
+            total += (self.weights['boosts'] *
+                    (fstate.boosts - self.state.boosts) *
+                    (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value))
+            total += self.weights['opp_pos'] * (fstate.opp_x - self.state.opp_x)
+            total += self.weights['opp_speed'] * fstate.opp_speed
+
+            return total
 
         # sort by scores
         options = sorted(options, key=score, reverse=True)

@@ -1,5 +1,5 @@
-files = bot.json requirements.txt src/__init__.py src/main.py src/bot.py \
-		src/enums.py src/map.py src/state.py
+files = bot.json requirements.txt src/weights.json src/__init__.py src/main.py \
+		src/bot.py src/enums.py src/map.py src/state.py
 
 zip:
 	zip bot.zip $(files)
