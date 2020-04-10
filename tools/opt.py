@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import json
 import random
+import math
 from tqdm import tqdm
 
 bot_zip = '/home/kobus/bot.zip'
@@ -83,7 +84,8 @@ def play_match(p1, p2):
     match_dir = os.path.join(logs_dir, list(os.listdir(logs_dir))[0])
     rounds = [r for r in os.listdir(match_dir) if
             os.path.isdir(os.path.join(match_dir, r))]
-    last_round = max(rounds)
+    rounds = [int(r.lstrip('Round ')) for r in rounds]
+    last_round = f'Round {max(rounds)}'
 
     endgame_file = os.path.join(match_dir, last_round, 'endGameState.txt')
     with open(endgame_file, 'r') as f:
@@ -93,9 +95,9 @@ def play_match(p1, p2):
                 break
     return p1 if winner == 'A' else p2
 
-pop_size = 60
+pop_size = 2 ** 7 # 128
 selection = int(pop_size / 2)
-generations = 10
+generations = 20
 
 print('pop size:', pop_size)
 print('generations:', generations)
@@ -107,7 +109,10 @@ logs_dir = os.path.join(starter_dir, 'match-logs')
 
 print('starting training')
 
-with tqdm(total=(generations * selection + sum(range(pop_size)))) as pbar:
+runs = generations * selection
+runs += sum(range(int(math.log2(pop_size)) + 1))
+
+with tqdm(total=runs) as pbar:
     for gen in range(generations):
         sel = []
 
@@ -136,26 +141,17 @@ with tqdm(total=(generations * selection + sum(range(pop_size)))) as pbar:
 
         population = new_pop
 
-    stats = [0 for _ in population]
-
-    for i in range(len(population)):
-        for j in range(i + 1, len(population)):
-            w = play_match(population[i], population[j])
-            if w == population[i]:
-                stats[i] += 1
-            else:
-                stats[j] += 1
+    while len(population) > 1:
+        new_pop = []
+        random.shuffle(population)
+        pairs = list(zip(population[::2], population[1::2]))
+        for pair in pairs:
+            new_pop.append(play_match(*pair))
             pbar.update(1)
+        population = new_pop
 
-stats = list(zip(population, stats))
-stats = sorted(stats, key=lambda x: x[1], reverse=True)
-
-if os.path.isdir(results):
-    shutil.rmtree(results)
-os.makedirs(results)
-
-for idx, w in enumerate(stats):
-    with open(os.path.join(results, str(idx)), 'w') as f:
-        json.dump(w[0], f)
+print('winner:', population[0])
+with open('result.json', 'w') as f:
+    json.dump(population[0], f)
 
 print('done')
