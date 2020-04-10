@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 bot_zip = '/home/kobus/bot.zip'
 starter_pack = '/home/kobus/starter-pack.zip'
-wd = '/home/kobus/opt'
+wd = '/home/kobus/tmp/opt'
 results = 'results'
 
 def run(cmd, cwd):
@@ -95,13 +95,32 @@ def play_match(p1, p2):
                 break
     return p1 if winner == 'A' else p2
 
-pop_size = 2 ** 7 # 128
-selection = int(pop_size / 2)
-generations = 20
+def next_round(pop, pbar):
+    random.shuffle(pop)
+    pairs = list(zip(pop[::2], pop[1::2]))
+    winners = []
+
+    for pair in pairs:
+        p1, p2 = pair
+        p1c, p2c = 0, 0
+
+        for _ in range(best_out_of):
+            if play_match(p1, p2) == p1:
+                p1c += 1
+            else:
+                p2c += 1
+            pbar.update()
+
+        winners.append(p1 if p1c > p2c else p2)
+
+    return winners
+
+best_out_of = 5
+pop_size = 2 ** 6 # 64
+generations = 50
 
 print('pop size:', pop_size)
 print('generations:', generations)
-print('selection size:', selection)
 
 population = [rand_ind() for _ in range(pop_size)]
 weights_file = 'src/weights.json'
@@ -109,46 +128,25 @@ logs_dir = os.path.join(starter_dir, 'match-logs')
 
 print('starting training')
 
-runs = generations * selection
-runs += sum(range(int(math.log2(pop_size)) + 1))
+runs = (pop_size / 2) * generations
+runs += pop_size - 1
+runs *= best_out_of
 
 with tqdm(total=runs) as pbar:
     for gen in range(generations):
-        sel = []
+        new_pop = next_round(population, pbar)
 
-        while len(sel) < selection:
-            p1 = random.choice(population)
-            p2 = random.choice(population)
+        random.shuffle(new_pop)
+        pairs = list(zip(new_pop[::2], new_pop[1::2]))
 
-            if p1 == p2:
-                continue
-
-            sel.append(play_match(p1, p2))
-            population.remove(sel[-1])
-
-            pbar.update(1)
-
-        new_pop = sel
-
-        while len(new_pop) < pop_size:
-            p1 = random.choice(sel + population)
-            p2 = random.choice(sel + population)
-
-            if p1 == p2:
-                continue
-
-            new_pop.append(merge(p1, p2))
+        for pair in pairs:
+            new_pop.append(merge(*pair))
+            new_pop.append(merge(random.choice(pair), rand_ind()))
 
         population = new_pop
 
     while len(population) > 1:
-        new_pop = []
-        random.shuffle(population)
-        pairs = list(zip(population[::2], population[1::2]))
-        for pair in pairs:
-            new_pop.append(play_match(*pair))
-            pbar.update(1)
-        population = new_pop
+        population = next_round(population, pbar)
 
 print('winner:', population[0])
 with open('result.json', 'w') as f:
