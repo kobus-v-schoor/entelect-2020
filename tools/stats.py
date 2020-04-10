@@ -2,52 +2,96 @@
 
 import os
 import csv
-import math
 
-runs = [] # boost runs
-speeds = []
+stats = {}
 matches = 0
-rounds = 0
 
-for player in ['A - sonic-sloth.csv', 'B - sonic-sloth.csv']:
-    print("player:", player)
-    for match in os.listdir('.'):
-        matches += 1
-        with open(os.path.join(match, player), 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            count = 0
+for match in os.listdir('.'):
+    matches += 1
+    files = list(os.listdir(match))
+    files.remove('match.log')
+    players = sorted([f.rstrip('.csv') for f in files if f.endswith('.csv')])
+    rounds = [int(r.lstrip('Round ')) for r in files if r.startswith('Round')]
+    rounds.sort()
+    last_round = 'Round ' + str(rounds[-1]).zfill(3)
+
+    for player in players:
+        if not player in stats:
+            stats[player] = {}
+            stats[player]['wins'] = 0
+            stats[player]['rounds'] = []
+            stats[player]['eff_speed'] = []
+            stats[player]['turn_speed'] = []
+            stats[player]['boost_used'] = 0
+            stats[player]['boost_runs'] = []
+
+    with open(os.path.join(match, last_round, 'endGameState.txt'), 'r') as f:
+        for line in f.readlines():
+            if line.startswith('The winner is: '):
+                w = line.lstrip('The winner is: ').strip()
+                stats[w]['wins'] += 1
+                stats[w]['rounds'].append(rounds[-1])
+
+    for player in players:
+        s = stats[player]
+        with open(os.path.join(match, f'{player}.csv'), 'r') as f:
+            reader = csv.reader(f)
+            prev_x = None
+            boost_run = 0
+            cmd = None
             for row in reader:
-                speed = int(row[4])
-                speeds.append(speed)
-                cmd = row[5]
-                if cmd == 'USED_BOOST':
-                    count = 1
+                rnd,pid,y,x,speed,state,boosting,bst_cnt,boosts,oils,score = row
 
-                if count:
+                x = int(x)
+                speed = int(speed)
+
+                s['turn_speed'].append(speed)
+
+                if prev_x is not None:
+                    s['eff_speed'].append(x - prev_x)
+                prev_x = x
+
+                if cmd == 'USE_BOOST':
+                    boost_run = 1
+                    s['boost_used'] += 1
+                if boost_run:
                     if speed != 15:
-                        runs.append(count)
-                        count = 0
-                    elif cmd != 'USED_BOOST':
-                        count += 1
-                rounds += 1
+                        s['boost_runs'].append(boost_run)
+                        boost_run = 0
+                    else:
+                        boost_run += 1
 
-    avg_rounds = rounds/matches
-    avg_speed = sum(speeds)/len(speeds)
-    avg_boosts_used = len(runs)/matches
-    avg_boost_length = sum(runs)/len(runs)
+                rnd_dir = 'Round ' + str(rnd).zfill(3)
+                with open(os.path.join(match, rnd_dir, player,
+                    'PlayerCommand.txt'), 'r') as f:
+                    for line in f.readlines():
+                        if line.startswith('Command:'):
+                            cmd = line.strip().lstrip('Command: ')
+                            break
 
-    print("avg rounds:", avg_rounds)
-    print("avg speed:", round(avg_speed, 3))
-    print("avg boosts used per match:", avg_boosts_used)
-    print("avg boost length:", round(avg_boost_length, 3))
+for player in stats:
+    s = stats[player]
+    def avgl(key):
+        s[key] = round(sum(s[key]) / len(s[key]), 2)
+    def avg(key):
+        s[key] = round(s[key] / matches, 2)
 
-    avg_boost = avg_boosts_used * 5 # how many rounds we could've been boosting
-    avg_non_boost = avg_rounds - avg_boost # how many rounds we weren't boosting
+    avgl('rounds')
+    avgl('turn_speed')
+    avgl('eff_speed')
+    avgl('boost_runs')
+    avg('boost_used')
 
-    avg_boost /= avg_rounds # ratio of rounds boosting
-    avg_non_boost /= avg_rounds # ratio of rounds not boosting
+print()
 
-    theoretical_best = 1500 / ((avg_boost * 15) + (avg_non_boost * 9))
+for player in stats:
+    s = stats[player]
+    print('player:', player)
+    print('wins:', s['wins'])
+    print('avg rounds:', s['rounds'])
+    print('avg turn speed:', s['turn_speed'])
+    print('avg eff speed:', s['eff_speed'])
+    print('avg boosts used:', s['boost_used'])
+    print('avg boost run length:', s['boost_runs'])
 
-    print("theoretical best rounds:", round(theoretical_best, 2))
-    print("theoretical improvement possible:", round(avg_rounds - theoretical_best, 2))
+    print()
