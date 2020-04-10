@@ -24,6 +24,7 @@ for match in os.listdir('.'):
             stats[player]['turn_speed'] = []
             stats[player]['boost_used'] = 0
             stats[player]['boost_runs'] = []
+            stats[player]['ahead'] = []
 
     with open(os.path.join(match, last_round, 'endGameState.txt'), 'r') as f:
         for line in f.readlines():
@@ -31,7 +32,9 @@ for match in os.listdir('.'):
                 w = line.lstrip('The winner is: ').strip()
                 stats[w]['wins'] += 1
                 stats[w]['rounds'].append(rounds[-1])
+                winner = w
 
+    end_pos = {}
     for player in players:
         s = stats[player]
         with open(os.path.join(match, f'{player}.csv'), 'r') as f:
@@ -44,6 +47,9 @@ for match in os.listdir('.'):
 
                 x = int(x)
                 speed = int(speed)
+
+                if int(rnd) == rounds[-1]:
+                    end_pos[player] = x
 
                 s['turn_speed'].append(speed)
 
@@ -69,6 +75,16 @@ for match in os.listdir('.'):
                             cmd = line.strip().lstrip('Command: ')
                             break
 
+    ahead = []
+    w_pos = 0
+    for p in end_pos:
+        if p != winner:
+            ahead.append(end_pos[p])
+        else:
+            w_pos = end_pos[p]
+
+    stats[winner]['ahead'].append(w_pos - max(ahead))
+
 for player in stats:
     s = stats[player]
     def avgl(key):
@@ -81,8 +97,7 @@ for player in stats:
     avgl('eff_speed')
     avgl('boost_runs')
     avg('boost_used')
-
-print()
+    avgl('ahead')
 
 for player in stats:
     s = stats[player]
@@ -93,5 +108,6 @@ for player in stats:
     print('avg eff speed:', s['eff_speed'])
     print('avg boosts used:', s['boost_used'])
     print('avg boost run length:', s['boost_runs'])
+    print('avg lead when finishing:', s['ahead'])
 
     print()
