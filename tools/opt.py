@@ -88,11 +88,15 @@ def play_match(p1, p2):
     last_round = f'Round {max(rounds)}'
 
     endgame_file = os.path.join(match_dir, last_round, 'endGameState.txt')
-    with open(endgame_file, 'r') as f:
-        for line in f.readlines():
-            if line.startswith('The winner is:'):
-                winner = line[15]
-                break
+    winner = None
+    if os.path.isfile(endgame_file):
+        with open(endgame_file, 'r') as f:
+            for line in f.readlines():
+                if line.startswith('The winner is:'):
+                    winner = line[15]
+                    break
+    if winner is None:
+        return random.choice((p1, p2))
     return p1 if winner == 'A' else p2
 
 def next_round(pop, pbar):
