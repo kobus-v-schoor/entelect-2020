@@ -104,6 +104,9 @@ class Bot:
         # will hold the cache state
         cache = {}
 
+        # true if one of the moves allow finishing the game
+        endgame = False
+
         while queue:
             cur = queue.popleft()
 
@@ -116,7 +119,10 @@ class Bot:
 
             if fstate is not None:
                 options.append((actions, fstate))
-                if fstate.x > self.state.map.max_x:
+                if fstate.x >= self.global_map.max_x and cur.depth() == 1:
+                    endgame = True
+                    search_depth = 1
+                elif fstate.x > self.state.map.max_x:
                     search_depth = min(search_depth, cur.depth())
                 if cur.depth() < search_depth:
                     queue += list(cur.children)
@@ -138,8 +144,19 @@ class Bot:
 
             return total
 
+        # we're in the endgame now
+        # only thing that matters here is our speed - if the action didn't cross
+        # the finish line it is given an infinitely negative score
+        def endgame_score(option):
+            actions, fstate = option
+
+            if fstate.x < fstate.map.max_x:
+                return float('-inf')
+            return fstate.speed
+
         # sort by scores
-        options = sorted(options, key=score, reverse=True)
+        options = sorted(options, key=endgame_score if endgame else score,
+                reverse=True)
 
         # choose best option
         best_option = options[0]
