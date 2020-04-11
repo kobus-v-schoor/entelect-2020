@@ -47,14 +47,20 @@ config['player-b'] = player_b
 with open(config_file, 'w') as f:
     json.dump(config, f)
 
+def norm_ind(ind):
+    m_val = max([abs(ind[k]) for k in ind])
+    for k in ind:
+        ind[k] /= m_val
+    return ind
+
 def rand_ind():
-    return {
+    return norm_ind({
             'pos': random.random(),
             'speed': random.random(),
             'boosts': random.random(),
             'opp_pos': -random.random(),
             'opp_speed': -random.random()
-            }
+            })
 
 def merge(p1, p2):
     n = {}
@@ -68,7 +74,7 @@ def merge(p1, p2):
         else:
             n[k] = (p1[k] + p2[k]) / 2
 
-    return n
+    return norm_ind(n)
 
 def play_match(p1, p2):
     with open(os.path.join(player_a, weights_file), 'w') as f:
