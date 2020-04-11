@@ -34,7 +34,12 @@ class Bot:
         self.state_cmd_cache = {}
 
         with open('weights.json', 'r') as wfile:
-            self.weights = json.load(wfile)
+            weights = json.load(wfile)
+            self.w_pos = weights['pos']
+            self.w_speed = weights['speed']
+            self.w_boosts = weights['boosts']
+            self.w_opp_pos = weights['opp_pos']
+            self.w_opp_speed = weights['opp_speed']
 
     def wait_for_next_round(self):
         log.debug('waiting for next round')
@@ -123,13 +128,13 @@ class Bot:
             actions, fstate = option
             total = 0
 
-            total += self.weights['pos'] * (fstate.x - self.state.x)
-            total += self.weights['speed'] * fstate.speed
-            total += (self.weights['boosts'] *
+            total += self.w_pos * (fstate.x - self.state.x)
+            total += self.w_speed * fstate.speed
+            total += (self.w_boosts *
                     (fstate.boosts - self.state.boosts) *
                     (Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value))
-            total += self.weights['opp_pos'] * (fstate.opp_x - self.state.opp_x)
-            total += self.weights['opp_speed'] * fstate.opp_speed
+            total += self.w_opp_pos * (fstate.opp_x - self.state.opp_x)
+            total += self.w_opp_speed * fstate.opp_speed
 
             return total
 
