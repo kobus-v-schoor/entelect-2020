@@ -19,6 +19,8 @@ for match in os.listdir('.'):
         if not player in stats:
             stats[player] = {}
             stats[player]['wins'] = 0
+            stats[player]['min_rounds'] = float('inf')
+            stats[player]['max_rounds'] = float('-inf')
             stats[player]['rounds'] = []
             stats[player]['eff_speed'] = []
             stats[player]['turn_speed'] = []
@@ -32,6 +34,8 @@ for match in os.listdir('.'):
                 w = line.lstrip('The winner is: ').strip()
                 stats[w]['wins'] += 1
                 stats[w]['rounds'].append(rounds[-1])
+                stats[w]['min_rounds'] = min(stats[w]['min_rounds'], rounds[-1])
+                stats[w]['max_rounds'] = max(stats[w]['max_rounds'], rounds[-1])
                 winner = w
 
     end_pos = {}
@@ -101,13 +105,15 @@ for player in stats:
 
 for player in stats:
     s = stats[player]
-    print('player:', player)
-    print('wins:', s['wins'])
-    print('avg rounds:', s['rounds'])
-    print('avg turn speed:', s['turn_speed'])
-    print('avg eff speed:', s['eff_speed'])
-    print('avg boosts used:', s['boost_used'])
-    print('avg boost run length:', s['boost_runs'])
-    print('avg lead when finishing:', s['ahead'])
+    print('player:\t\t\t', player)
+    print('wins:\t\t\t', s['wins'])
+    print('min rounds:\t\t', s['min_rounds'])
+    print('max rounds:\t\t', s['max_rounds'])
+    print('avg rounds:\t\t', s['rounds'])
+    print('avg turn speed:\t\t', s['turn_speed'])
+    print('avg eff speed:\t\t', s['eff_speed'])
+    print('avg boosts used:\t', s['boost_used'])
+    print('avg boost run length:\t', s['boost_runs'])
+    print('avg lead when winner:\t', s['ahead'])
 
     print()
