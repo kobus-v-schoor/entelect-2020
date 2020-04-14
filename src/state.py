@@ -52,6 +52,54 @@ class State:
         return str({k: vars(self)[k] for k in vars(self) if not
             type(vars(self)[k]) is Map})
 
+# calculate trajectories (x offset, y offset and new speed)
+def get_trajectory(x, y, speed, cmd):
+    x_off, y_off = 0, 0
+
+    if cmd == Cmd.NOP:
+        x_off = speed
+    elif cmd == Cmd.ACCEL:
+        speed = next_speed(speed)
+        x_off = speed
+    elif cmd == Cmd.DECEL:
+        speed = prev_speed(speed)
+        x_off = speed
+    elif cmd == Cmd.LEFT:
+        y_off = -1
+        x_off = speed - 1
+    elif cmd == Cmd.RIGHT:
+        y_off = 1
+        x_off = speed - 1
+    elif cmd == Cmd.BOOST:
+        speed = Speed.BOOST_SPEED.value
+        x_off = speed
+    elif cmd == Cmd.OIL:
+        x_off = speed
+
+    return [x_off, y_off, speed]
+
+# check path for penalties and obstructions that player ran into
+def check_path(smap, x, y, x_off, y_off, speed):
+    oils, boosts, penalties = 0, 0, 0
+
+    for cx in range(0 if y_off else 1, x_off + 1):
+        if x + cx > smap.max_x: # we're outside our current view
+            break
+
+        block = smap[x + cx, y + y_off]
+
+        if block == Block.EMPTY:
+            pass
+        elif block == Block.MUD or block == Block.OIL_SPILL:
+            speed = max(Speed.SPEED_1.value, prev_speed(speed))
+            penalties += 1
+        elif block == Block.OIL_ITEM:
+            oils += 1
+        elif block == Block.BOOST:
+            boosts += 1
+
+    return (speed, oils, boosts, penalties)
+
 # calculates the new state from the current state based on a given cmd
 # NOTE this function assumes that cmd is a valid command for the given state to
 # remove reduntant checks for the validity of the commands
@@ -67,30 +115,6 @@ def next_state(state, cmd):
             state.speed = Speed.MAX_SPEED.value
 
     ## calculate trajectories (x offset, y offset and new speed)
-    def get_trajectory(x, y, speed, cmd):
-        x_off, y_off = 0, 0
-
-        if cmd == Cmd.NOP:
-            x_off = speed
-        elif cmd == Cmd.ACCEL:
-            speed = next_speed(speed)
-            x_off = speed
-        elif cmd == Cmd.DECEL:
-            speed = prev_speed(speed)
-            x_off = speed
-        elif cmd == Cmd.LEFT:
-            y_off = -1
-            x_off = speed - 1
-        elif cmd == Cmd.RIGHT:
-            y_off = 1
-            x_off = speed - 1
-        elif cmd == Cmd.BOOST:
-            speed = Speed.BOOST_SPEED.value
-            x_off = speed
-        elif cmd == Cmd.OIL:
-            x_off = speed
-
-        return [x_off, y_off, speed]
 
     bot_traj = get_trajectory(state.x, state.y, state.speed, cmd)
     # TODO actually try and guess what the opponent will do
@@ -142,29 +166,8 @@ def next_state(state, cmd):
         opp_traj[1] = 0
 
     ## check path for penalties and obstructions that player ran into
-    def check_path(x, y, x_off, y_off, speed):
-        oils, boosts, penalties = 0, 0, 0
-
-        for cx in range(0 if y_off else 1, x_off + 1):
-            if x + cx > state.map.max_x: # we're outside our current view
-                break
-
-            block = state.map[x + cx, y + y_off]
-
-            if block == Block.EMPTY:
-                pass
-            elif block == Block.MUD or block == Block.OIL_SPILL:
-                speed = max(Speed.SPEED_1.value, prev_speed(speed))
-                penalties += 1
-            elif block == Block.OIL_ITEM:
-                oils += 1
-            elif block == Block.BOOST:
-                boosts += 1
-
-        return (speed, oils, boosts, penalties)
-
-    bot_path = check_path(state.x, state.y, *bot_traj)
-    opp_path = check_path(state.opp_x, state.opp_y, *opp_traj)
+    bot_path = check_path(state.map, state.x, state.y, *bot_traj)
+    opp_path = check_path(state.map, state.opp_x, state.opp_y, *opp_traj)
 
     ## update this bot's state
 
