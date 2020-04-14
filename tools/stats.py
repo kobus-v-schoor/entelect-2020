@@ -103,6 +103,8 @@ for player in stats:
     avg('boost_used')
     avgl('ahead')
 
+    s['wins'] = int(s['wins'] / 2) # 2 matches for every round
+
 for player in stats:
     s = stats[player]
     print('player:\t\t\t', player)
