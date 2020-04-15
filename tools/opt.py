@@ -151,7 +151,7 @@ logs_dir = os.path.join(starter_dir, 'match-logs')
 
 print('starting training')
 
-runs = (pop_size / 2) * generations
+runs = int(pop_size / 2) * generations
 runs += pop_size - 1
 runs *= rounds
 
