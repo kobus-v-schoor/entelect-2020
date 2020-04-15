@@ -100,6 +100,38 @@ def check_path(smap, x, y, x_off, y_off, speed):
 
     return (speed, oils, boosts, penalties)
 
+# predicts the opponent's next move based their current state
+# tree search similar to ours but ignores collisions and powerups with depth=1
+def pred_opp(state):
+    # if opponent is very far behind us just ignore them
+    if state.x - state.opp_x > 50:
+        return Cmd.ACCEL
+    # opponent is too far in front of us to make a reasonable prediction
+    if state.opp_x >= state.map.max_x:
+        return Cmd.ACCEL
+
+    search = [Cmd.NOP]
+    if state.opp_speed < Speed.MAX_SPEED.value:
+        search.append(Cmd.ACCEL)
+    if state.opp_y > state.map.min_y:
+        search.append(Cmd.LEFT)
+    if state.opp_y < state.map.max_y:
+        search.append(Cmd.RIGHT)
+
+    options = []
+    for cmd in search:
+        x_off, y_off, speed = get_trajectory(state.opp_x, state.opp_y,
+                state.opp_speed, cmd)
+        speed, oils, boosts, penalties = check_path(state.map, state.opp_x,
+                state.opp_y, x_off, y_off, speed)
+
+        options.append((cmd, x_off + speed + 1.5 * boosts))
+
+    # sort options based on score
+    options = sorted(options, key=lambda o: o[1], reverse=True)
+    # return best option's cmd
+    return options[0][0]
+
 # calculates the new state from the current state based on a given cmd
 # NOTE this function assumes that cmd is a valid command for the given state to
 # remove reduntant checks for the validity of the commands
@@ -117,9 +149,8 @@ def next_state(state, cmd):
     ## calculate trajectories (x offset, y offset and new speed)
 
     bot_traj = get_trajectory(state.x, state.y, state.speed, cmd)
-    # TODO actually try and guess what the opponent will do
     opp_traj = get_trajectory(state.opp_x, state.opp_y, state.opp_speed,
-            Cmd.ACCEL)
+            pred_opp(state))
 
     ## check powerups that were used and consume them
 

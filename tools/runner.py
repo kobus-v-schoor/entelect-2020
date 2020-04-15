@@ -17,7 +17,7 @@ player_b = '/home/kobus/opp'
 min_lane = 1
 max_lane = 4
 
-match_count = 50
+match_count = 20
 
 def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, capture_output=True, shell=True, check=True)
