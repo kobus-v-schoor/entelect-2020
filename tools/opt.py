@@ -26,7 +26,7 @@ os.makedirs(wd)
 print('unzipping starter-pack')
 starter_dir = os.path.join(wd, 'starter-pack')
 os.makedirs(starter_dir)
-run(f'unzip {starter_pack}', starter_dir)
+run(f'unzip {starter_pack}', wd)
 
 print('unzip player a')
 player_a = os.path.join(wd, 'player_a')
@@ -47,20 +47,14 @@ config['player-b'] = player_b
 with open(config_file, 'w') as f:
     json.dump(config, f)
 
-def norm_ind(ind):
-    m_val = max([abs(ind[k]) for k in ind])
-    for k in ind:
-        ind[k] /= m_val
-    return ind
-
 def rand_ind():
-    return norm_ind({
+    return {
             'pos': random.random(),
             'speed': random.random(),
             'boosts': random.random(),
             'opp_pos': -random.random(),
             'opp_speed': -random.random()
-            })
+            }
 
 def merge(p1, p2):
     n = {}
@@ -74,7 +68,7 @@ def merge(p1, p2):
         else:
             n[k] = (p1[k] + p2[k]) / 2
 
-    return norm_ind(n)
+    return n
 
 def play_match(p1, p2):
     seed = random.randint(0, 2 ** 16)
