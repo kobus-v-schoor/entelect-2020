@@ -135,7 +135,7 @@ def pred_opp(state):
 # calculates the new state from the current state based on a given cmd
 # NOTE this function assumes that cmd is a valid command for the given state to
 # remove reduntant checks for the validity of the commands
-def next_state(state, cmd):
+def next_state(state, cmd, opp_cmd):
     state = state.copy()
 
     ## keep track of boosting
@@ -150,7 +150,7 @@ def next_state(state, cmd):
 
     bot_traj = get_trajectory(state.x, state.y, state.speed, cmd)
     opp_traj = get_trajectory(state.opp_x, state.opp_y, state.opp_speed,
-            pred_opp(state))
+            opp_cmd)
 
     ## check powerups that were used and consume them
 
@@ -232,13 +232,22 @@ def next_state(state, cmd):
 
 # calculates the final state from the current state given a list of actions
 # if one of the actions are invalid it returns None
-def final_state(cur_state, actions, cache):
+# predictor is a callable which takes the current state and predicts the
+# opponent's move
+def final_state(cur_state, actions, predictor, cache, opp_cache):
     for cmd in actions:
         ## check if the state + cmd has been cached - cache holds next state
         pk = (cur_state, cmd)
         if pk in cache:
             cur_state = cache[pk]
             continue
+
+        ## check if the state is in the opponent cache
+        if cur_state in opp_cache:
+            opp_cmd = opp_cache[cur_state]
+        else:
+            opp_cmd = predictor(cur_state)
+            opp_cache[cur_state] = opp_cmd
 
         ## filter out invalid cmds
 
@@ -265,7 +274,7 @@ def final_state(cur_state, actions, cache):
             return None
 
         ## calculate next state
-        ns = next_state(cur_state, cmd)
+        ns = next_state(cur_state, cmd, opp_cmd)
 
         ## store in cache
         cache[pk] = ns
@@ -274,3 +283,41 @@ def final_state(cur_state, actions, cache):
         cur_state = ns
 
     return cur_state
+
+def calc_opp_cmd(from_state, to_state, cmd, global_map):
+    x, y = from_state.opp_x, from_state.opp_y
+    speed = from_state.opp_speed
+
+    fx, fy = to_state.opp_x, to_state.opp_y
+    fspeed = to_state.opp_speed
+
+    x_off = fx - x
+    y_off = fy - y
+
+    # fast checks that will catch most of the actions taken by the opponent
+    if y_off != 0:
+        return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
+    if x_off == Speed.BOOST_SPEED.value != speed:
+        return Cmd.BOOST
+    if x_off == next_speed(speed) != speed:
+        return Cmd.ACCEL
+    if x_off == speed == fspeed and fx != to_state.x - 1:
+        return Cmd.NOP
+
+    # comprehensive search for rarer circumstances (e.g. collisions)
+    search = [Cmd.NOP]
+    if from_state.opp_speed < Speed.MAX_SPEED.value:
+        search.append(Cmd.ACCEL)
+    if from_state.opp_y > from_state.map.min_y:
+        search.append(Cmd.LEFT)
+    if from_state.opp_y < from_state.map.max_y:
+        search.append(Cmd.RIGHT)
+    if from_state.opp_speed != Speed.BOOST_SPEED:
+        search.append(Cmd.BOOST)
+    search.append(Cmd.DECEL)
+
+    for opp_cmd in search:
+        ns = next_state(from_state, cmd, opp_cmd)
+        if ns.opp_x == fx and ns.opp_y == fy and ns.opp_speed == fspeed:
+            return opp_cmd
+    return None

@@ -174,5 +174,6 @@ with tqdm(total=runs) as pbar:
 print('winner:', population[0])
 with open('result.json', 'w') as f:
     json.dump(population[0], f, indent=4)
+    f.write('\n')
 
 print('done')

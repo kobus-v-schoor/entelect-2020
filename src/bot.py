@@ -3,7 +3,7 @@ import json
 import os
 from collections import deque
 
-from state import State, next_state, final_state
+from state import State, next_state, final_state, calc_opp_cmd, pred_opp
 from enums import Speed, Block, Cmd, CMD_SEARCH
 from map import GlobalMap
 
@@ -31,7 +31,12 @@ class Bot:
         self.state = None
         self.global_map = GlobalMap(x_size=1500, y_size=4)
         self.finished = False
-        self.state_cmd_cache = {}
+
+        self.prev_state = None
+        self.prev_cmd = None
+        self.state_backlog = deque()
+        self.train_x = []
+        self.train_y = []
 
         with open('weights.json', 'r') as wfile:
             weights = json.load(wfile)
@@ -72,21 +77,49 @@ class Bot:
             self.finished = True
             return
 
+        # save previous state
+        self.prev_state = self.state
+
         # parse state vars
         self.state = State(self.raw_state)
 
         # update global map
         self.state.map.update_global_map(self.global_map)
 
-        # purge old state cmd cache
-        self.state_cmd_cache = {}
+        # add state transition to backlog
+        if self.prev_state is not None:
+            self.state_backlog.append((self.prev_state, self.state,
+                self.prev_cmd))
+
+            # process backlog
+            while self.state_backlog:
+                b = self.state_backlog.popleft()
+                if b[1].opp_x <= self.state.map.max_x:
+                    self.proccess_backlog(*b)
+                else:
+                    self.state_backlog.appendleft(b)
+                    break
 
         log.debug('finished parsing state')
+
+    def proccess_backlog(self, prev_state, nxt_state, cmd):
+        cmd = calc_opp_cmd(prev_state, nxt_state, cmd, self.global_map)
+        if cmd is None:
+            return
+        self.train_x.append(prev_state)
+        self.train_y.append(cmd)
+
+    def train(self):
+        pass
+
+    def predict(self, state):
+        return pred_opp(state)
 
     # executes the given cmd for the current round
     def exec(self, cmd):
         log.info(f'exec {cmd} for round {self.next_round}')
         print(f'C;{self.next_round};{cmd.value}')
+        self.train()
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
@@ -101,8 +134,11 @@ class Bot:
         queue = deque()
         queue.append(Tree())
 
-        # will hold the cache state
+        # will hold the state cache
         cache = {}
+
+        # will hold the opponent prediction cache
+        opp_cache = {}
 
         # true if one of the moves allow finishing the game
         endgame = False
@@ -115,7 +151,8 @@ class Bot:
                 continue
 
             actions = cur.path
-            fstate = final_state(self.state, actions, cache)
+            fstate = final_state(self.state, actions, self.predict, cache,
+                    opp_cache)
 
             if fstate is not None:
                 options.append((actions, fstate))
@@ -163,6 +200,9 @@ class Bot:
 
         # wanted cmd is the first move in the best option
         cmd = best_option[0][0]
+
+        # save cmd
+        self.prev_cmd = cmd
 
         return cmd
 
