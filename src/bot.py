@@ -2,13 +2,16 @@ import json
 import os
 
 from enums import Cmd
-from state import State
+from state import State, Player
 from maps import Map, GlobalMap
 
 class Bot:
     def __init__(self):
         self.finished = False
         self.global_map = GlobalMap(x_size=1500, y_size=4)
+
+        self.prev_state = None
+        self.state = None
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
@@ -26,11 +29,18 @@ class Bot:
             self.finished = True
             return
 
+        # save previous state
+        self.prev_state = self.state
+
         # create state
         self.state = State()
 
         # parse map
         self.state.map = Map(raw_state['worldMap'], self.global_map)
+
+        # parse players
+        self.state.player = Player(raw_state['player'])
+        self.state.opp = Player(raw_state['opponent'])
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
