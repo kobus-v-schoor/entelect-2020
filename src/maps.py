@@ -71,13 +71,12 @@ class Map:
         raise IndexError
 
     # only makes changes to the mutable view, not the global map. use
-    # update_global_map to propogate changes. only allows changes inside the
-    # view's bounds since it is the only reasonable place to make changes
+    # update_global_map to propogate changes.
     def __setitem__(self, pos, block):
         x, y = pos
 
-        if self.min_x <= x <= self.max_x:
-            if self.min_y <= y <= self.max_y:
+        if self.global_map.min_x <= x <= self.global_map.max_x:
+            if self.global_map.min_y <= y <= self.global_map.max_y:
                 self.view[pos] = block
                 return
         raise IndexError

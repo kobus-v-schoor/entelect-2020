@@ -40,7 +40,7 @@ class Bot:
 
         # parse players
         self.state.player = Player(raw_state['player'])
-        self.state.opp = Player(raw_state['opponent'])
+        self.state.opponent = Player(raw_state['opponent'])
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
