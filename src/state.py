@@ -27,10 +27,10 @@ class Player:
             self.boost_counter = 0
 
     def __hash__(self):
-        return hash(vars(self).items())
+        return hash(tuple(vars(self).values()))
 
     def __eq__(self, other):
-        return vars(self) == vars(other)
+        return tuple(vars(self).values()) == tuple(vars(other).values())
 
     def __repr__(self):
         return str(vars(self))
@@ -51,17 +51,11 @@ class State:
     def __repr__(self):
         return str(vars(self))
 
-    # extract a tuple that can be used to describe a unique state. used for
-    # hashing and equality checks
-    # used to exclude vars that should not be included in comparison
-    def xvars(self):
-        return (self.player, self.opponent)
-
     def __hash__(self):
-        return hash(self.xvars())
+        return hash((self.player, self.opponent))
 
     def __eq__(self, other):
-        return self.xvars() == other.xvars() if type(other) is State else False
+        return (self.player, self.opponent) == (other.player, other.opponent)
 
 class Trajectory:
     def __init__(self):

@@ -48,13 +48,3 @@ class Cmd(enum.Enum):
 
     BOOST = 'USE_BOOST'
     OIL = 'USE_OIL'
-
-CMD_SEARCH = [
-        Cmd.NOP,
-        Cmd.ACCEL,
-        # Cmd.DECEL, # never used, taken out to improve performance
-        Cmd.LEFT,
-        Cmd.RIGHT,
-        Cmd.BOOST,
-        Cmd.OIL,
-        ]

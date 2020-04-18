@@ -4,6 +4,7 @@ import os
 from enums import Cmd
 from state import State, Player
 from maps import Map, GlobalMap
+from search import search
 
 class Bot:
     def __init__(self):
@@ -49,6 +50,7 @@ class Bot:
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def find_cmd(self):
+        options = search(self.state, lambda _: Cmd.ACCEL)
         return Cmd.ACCEL
 
     def run(self):
