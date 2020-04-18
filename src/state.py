@@ -83,7 +83,7 @@ def check_path(smap, x, y, x_off, y_off, speed):
     oils, boosts, penalties = 0, 0, 0
 
     for cx in range(0 if y_off else 1, x_off + 1):
-        if x + cx > smap.max_x: # we're outside our current view
+        if x + cx >= smap.global_map.max_x:
             break
 
         block = smap[x + cx, y + y_off]
@@ -294,6 +294,13 @@ def calc_opp_cmd(from_state, to_state, cmd, global_map):
     x_off = fx - x
     y_off = fy - y
 
+    # when returning NOP check if it wasn't an oil drop
+    def check_for_oil():
+        if (x > from_state.map.global_map.min_x and
+                from_state.map.global_map[x-1, y] == Block.OIL_SPILL):
+            return Cmd.OIL
+        return Cmd.NOP
+
     # fast checks that will catch most of the actions taken by the opponent
     if y_off != 0:
         return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
@@ -302,7 +309,7 @@ def calc_opp_cmd(from_state, to_state, cmd, global_map):
     if x_off == next_speed(speed) != speed:
         return Cmd.ACCEL
     if x_off == speed == fspeed and fx != to_state.x - 1:
-        return Cmd.NOP
+        return check_for_oil()
 
     # comprehensive search for rarer circumstances (e.g. collisions)
     search = [Cmd.NOP]
@@ -319,5 +326,7 @@ def calc_opp_cmd(from_state, to_state, cmd, global_map):
     for opp_cmd in search:
         ns = next_state(from_state, cmd, opp_cmd)
         if ns.opp_x == fx and ns.opp_y == fy and ns.opp_speed == fspeed:
+            if opp_cmd == Cmd.NOP:
+                return check_for_oil()
             return opp_cmd
     return None
