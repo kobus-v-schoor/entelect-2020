@@ -3,6 +3,17 @@ from collections import deque
 from enums import Cmd, Speed
 from state import valid_actions, next_state
 
+class Weights:
+    def __init__(self, raw_weights):
+        self.pos = raw_weights['pos']
+        self.speed = raw_weights['speed']
+        self.boosts = raw_weights['boosts']
+        self.opp_pos = raw_weights['opp_pos']
+        self.opp_speed = raw_weights['opp_speed']
+
+    def __repr__(self):
+        return str(vars(self))
+
 # does a bfs search from the current state up to the first move that is outside
 # the map's view or if the search depth reaches max_search_depth
 # returns a list of tuples of the form (actions, final state) where actions are
@@ -62,3 +73,25 @@ def search(state, opp_pred):
     options = [o for o in options if len(o[0]) == max_search_depth]
 
     return options
+
+# scores, ranks and returns the best scoring option. scores are calculated using
+# the weights dict. state is the current state from which to score
+# TODO endgame scoring
+def score(options, cur_state, weights):
+    boost_advantage = Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
+
+    def s(option):
+        actions, state = option
+        total = 0
+
+        total += weights.pos * (state.player.x - cur_state.player.x)
+        total += weights.speed * state.player.speed
+        total += (weights.boosts * (state.player.boosts -
+            cur_state.player.boosts) * boost_advantage)
+        total += weights.opp_pos * (state.opponent.x - cur_state.opponent.x)
+        total += weights.opp_speed * state.opponent.speed
+
+        return total
+
+    actions, final_state = max(options, key=s)
+    return actions[0]

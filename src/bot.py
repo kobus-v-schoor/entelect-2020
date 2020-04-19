@@ -5,7 +5,7 @@ from collections import deque
 from enums import Cmd
 from state import State, Player, StateTransition, calc_opp_cmd
 from maps import Map, GlobalMap
-from search import search
+from search import search, score, Weights
 
 class Bot:
     def __init__(self):
@@ -17,6 +17,9 @@ class Bot:
         # will hold the state transitions that need to be processed to calculate
         # opponent's cmds
         self.backlog = deque()
+
+        with open('weights.json', 'r') as f:
+            self.weights = Weights(json.load(f))
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
@@ -82,8 +85,8 @@ class Bot:
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        # TODO implement searching and scoring
-        cmd = Cmd.ACCEL
+        cmd = score(search(self.state, lambda _: Cmd.ACCEL), self.state,
+                self.weights)
 
         # TODO implement some way to write action's modifications to the map, at
         # this stage this is only for oil drops
