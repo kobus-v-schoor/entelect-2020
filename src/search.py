@@ -1,7 +1,7 @@
 from collections import deque
 
 from enums import Cmd, Speed
-from state import next_state
+from state import valid_actions, next_state
 
 # does a bfs search from the current state up to the first move that is outside
 # the map's view or if the search depth reaches max_search_depth
@@ -21,24 +21,6 @@ def search(state, opp_pred):
 
     # holds the prediction cache for the opponent prediction
     pred_cache = {}
-
-    def valid_actions(state):
-        valid = [Cmd.NOP]
-
-        if state.player.speed < Speed.MAX_SPEED.value:
-            valid.append(Cmd.ACCEL)
-        if state.player.speed > Speed.MIN_SPEED.value:
-            valid.append(Cmd.DECEL)
-        if state.player.y > state.map.min_y:
-            valid.append(Cmd.LEFT)
-        if state.player.y < state.map.max_y:
-            valid.append(Cmd.RIGHT)
-        if state.player.boosts > 0 and not state.player.boosting:
-            valid.append(Cmd.BOOST)
-        if state.player.oils > 0 and state.player.x > state.opponent.x:
-            valid.append(Cmd.OIL)
-
-        return valid
 
     while queue:
         actions = queue.popleft()

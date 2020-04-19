@@ -41,9 +41,11 @@ class State:
         self.player = None
         self.opponent = None
 
-    # switches player and opponent
+    # returns a copy of the state with the player and opponent switched
     def switch(self):
-        self.player, self.opponent = self.opponent, self.player
+        cp = self.copy()
+        cp.player, cp.opponent = cp.opponent, cp.player
+        return cp
 
     def copy(self):
         return copy.deepcopy(self)
@@ -95,7 +97,7 @@ class Trajectory:
 
     def boost(self):
         self.speed = Speed.BOOST_SPEED.value
-        straight()
+        self.straight()
 
     def apply(self, player):
         player.x += self.x_off
@@ -127,6 +129,32 @@ class PathMods:
     def __repr__(self):
         return str(vars(self))
 
+class StateTransition:
+    def __init__(self, round_num, cmd, from_state, to_state):
+        self.round_num = round_num
+        self.cmd = cmd
+        self.from_state = from_state
+        self.to_state = to_state
+
+# returns a list of valid actions that the player can take for a given state
+def valid_actions(state):
+    valid = [Cmd.NOP]
+
+    if state.player.speed < Speed.MAX_SPEED.value:
+        valid.append(Cmd.ACCEL)
+    if state.player.speed > Speed.MIN_SPEED.value:
+        valid.append(Cmd.DECEL)
+    if state.player.y > state.map.min_y:
+        valid.append(Cmd.LEFT)
+    if state.player.y < state.map.max_y:
+        valid.append(Cmd.RIGHT)
+    if state.player.boosts > 0 and not state.player.boosting:
+        valid.append(Cmd.BOOST)
+    if state.player.oils > 0 and state.player.x > state.opponent.x:
+        valid.append(Cmd.OIL)
+
+    return valid
+
 def calc_trajectory(player, cmd):
     traj = Trajectory()
     traj.speed = player.speed
@@ -151,7 +179,12 @@ def calc_trajectory(player, cmd):
 def calc_path_mods(state_map, player, traj):
     path_mods = PathMods()
 
-    start = player.x if traj.y_off else player.x + 1
+    # FIXME workaround for bug present in engine 2020.1.6 where turning onto a
+    # special block doesn't count it, so starting one block further than you
+    # actual should
+
+    # start = player.x if traj.y_off else player.x + 1
+    start = player.x + 1
     end = player.x + traj.x_off
     for x in range(start, end + 1):
         # went outside the map
@@ -274,3 +307,47 @@ def next_state(state, cmd, opp_cmd):
     track_boosting(state.opponent)
 
     return state
+
+# given the player's cmd, the initial state and the state thereafter this
+# calculates cmd the opponent took. returns None if unable to figure out
+def calc_opp_cmd(cmd, from_state, to_state):
+    x, y = from_state.opponent.x, from_state.opponent.y
+    speed = from_state.opponent.speed
+
+    fx, fy = to_state.opponent.x, to_state.opponent.y
+    fspeed = to_state.opponent.speed
+
+    x_off = fx - x
+    y_off = fy - y
+
+    # when returning NOP check if it wasn't maybe an oil drop
+    def check_nop():
+        if x > from_state.player.x and from_state.map[x-1,y] == Block.OIL_SPILL:
+            return Cmd.OIL
+        return Cmd.NOP
+
+    # fast checks that will catch most of the actions taken by the opponent
+
+    if y_off != 0:
+        return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
+
+    # check if the opponent is not stuck behind us because that can mess with
+    # x_off
+    if fx != to_state.player.x - 1 or fy != to_state.player.y:
+        if x_off == Speed.BOOST_SPEED.value > speed:
+            return Cmd.BOOST
+        if x_off == next_speed(speed) > speed:
+            return Cmd.ACCEL
+        if x_off == prev_speed(speed) < speed:
+            return Cmd.DECEL
+        if x_off == speed:
+            return check_nop()
+
+    # comprehensive search for rarer circumstances (e.g. collisions)
+    for opp_cmd in valid_actions(from_state.switch()):
+        ns = next_state(from_state, cmd, opp_cmd)
+        if (ns.opponent.x,ns.opponent.y,ns.opponent.speed) == (fx,fy,fspeed):
+            if opp_cmd == Cmd.NOP:
+                return check_nop()
+            return opp_cmd
+    return None

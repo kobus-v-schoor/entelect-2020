@@ -1,8 +1,9 @@
 import json
 import os
+from collections import deque
 
 from enums import Cmd
-from state import State, Player
+from state import State, Player, StateTransition, calc_opp_cmd
 from maps import Map, GlobalMap
 from search import search
 
@@ -13,6 +14,9 @@ class Bot:
 
         self.prev_state = None
         self.state = None
+        # will hold the state transitions that need to be processed to calculate
+        # opponent's cmds
+        self.backlog = deque()
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
@@ -24,7 +28,7 @@ class Bot:
         with open(state_file, 'r') as f:
             return json.load(f)
 
-    def parse_state(self, raw_state):
+    def parse_state(self, round_num, raw_state):
         # check if game is finished
         if raw_state['player']['state'] == 'FINISHED':
             self.finished = True
@@ -43,15 +47,48 @@ class Bot:
         self.state.player = Player(raw_state['player'])
         self.state.opponent = Player(raw_state['opponent'])
 
+        # backlog state transition
+        if self.prev_state is not None:
+            self.backlog.append(StateTransition(round_num - 1, self.prev_cmd,
+                self.prev_state, self.state))
+
+            while self.backlog:
+                # opponent's entire move is within our view
+                if self.backlog[0].to_state.opponent.x <= self.state.map.max_x:
+                    self.process_opp_action(self.backlog.popleft())
+                else:
+                    break
+
+    def process_opp_action(self, trans):
+        # FIXME currently assumes opponent had at least one boost so that the
+        # boost cmd is searched as well
+        trans.from_state.opponent.boosts = 1
+
+        # get opponent's cmd
+        cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
+        if cmd is None:
+            return
+
+        # score ensemble
+        # TODO implement scoring
+
+        # keep track of opponent's powerups
+        # TODO implement keeping track of opponent's powerups
+
     # executes cmd for round_num
     def exec(self, round_num, cmd):
         print(f'C;{round_num};{cmd.value}')
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
-    def find_cmd(self):
-        options = search(self.state, lambda _: Cmd.ACCEL)
-        return Cmd.ACCEL
+    def calc_cmd(self):
+        # TODO implement searching and scoring
+        cmd = Cmd.ACCEL
+
+        # TODO implement some way to write action's modifications to the map, at
+        # this stage this is only for oil drops
+
+        return cmd
 
     def run(self):
         while True:
@@ -62,11 +99,15 @@ class Bot:
             raw_state = self.read_state(round_num)
 
             # parse raw state
-            self.parse_state(raw_state)
+            self.parse_state(round_num, raw_state)
 
             # check if game is finished
             if self.finished:
                 break
 
+            # calculate next cmd
+            cmd = self.calc_cmd()
+            self.prev_cmd = cmd
+
             # execute next cmd
-            self.exec(round_num, self.find_cmd())
+            self.exec(round_num, cmd)
