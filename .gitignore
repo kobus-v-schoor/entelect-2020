@@ -1,6 +1,5 @@
 rounds
 *.swp
-bot.log
 bot.zip
 weights
 __pycache__
