@@ -20,6 +20,8 @@ class Bot:
 
         with open('weights.json', 'r') as f:
             self.weights = Weights(json.load(f))
+        with open('weights.json', 'r') as f:
+            self.opp_weights = Weights(json.load(f))
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
@@ -63,10 +65,6 @@ class Bot:
                     break
 
     def process_opp_action(self, trans):
-        # FIXME currently assumes opponent had at least one boost so that the
-        # boost cmd is searched as well
-        trans.from_state.opponent.boosts = 1
-
         # get opponent's cmd
         cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
         if cmd is None:
@@ -82,10 +80,22 @@ class Bot:
     def exec(self, round_num, cmd):
         print(f'C;{round_num};{cmd.value}')
 
+    # predicts the opponent's move based on the given state
+    # also does a tree search with the assumption that we're just going to
+    # accelerate
+    def pred_opp(self, state):
+        # if opponent is outside our view just assume they are accelerating
+        if state.opponent.x >= self.state.map.max_x:
+            return Cmd.ACCEL
+
+        switch = state.switch()
+        return score(search(switch, lambda _: Cmd.ACCEL), switch,
+                self.opp_weights)
+
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        cmd = score(search(self.state, lambda _: Cmd.ACCEL), self.state,
+        cmd = score(search(self.state, self.pred_opp), self.state,
                 self.weights)
 
         # TODO implement some way to write action's modifications to the map, at

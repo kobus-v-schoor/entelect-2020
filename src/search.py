@@ -20,8 +20,7 @@ class Weights:
 # a list of actions taken which achieves the final state. opp_pred must be a
 # callable that takes the current state as an argument and which will return a
 # valid action for the opponent.
-def search(state, opp_pred):
-    max_search_depth = 4
+def search(state, opp_pred, max_search_depth=4):
     options = []
 
     # holds the bfs queue

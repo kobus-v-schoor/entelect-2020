@@ -44,6 +44,7 @@ class State:
     # returns a copy of the state with the player and opponent switched
     def switch(self):
         cp = self.copy()
+        cp.map.move_window(cp.player.x, cp.opponent.x)
         cp.player, cp.opponent = cp.opponent, cp.player
         return cp
 

@@ -62,6 +62,11 @@ class Map:
             self.global_map[pos] = self.view[pos]
         self.view = {}
 
+    # moves the min and max x bounds relative to two x positions
+    def move_window(self, from_x, to_x):
+        self.min_x = max(self.global_map.min_x, self.min_x + to_x - from_x)
+        self.max_x = min(self.global_map.max_x, self.max_x + to_x - from_x)
+
     def __getitem__(self, pos):
         x, y = pos
 
