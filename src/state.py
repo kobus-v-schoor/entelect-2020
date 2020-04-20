@@ -86,12 +86,14 @@ class Trajectory:
         self.straight()
 
     def left(self):
-        self.y_off -= 1
-        self.x_off += self.speed - 1
+        if self.speed > 0:
+            self.y_off -= 1
+            self.x_off += self.speed - 1
 
     def right(self):
-        self.y_off += 1
-        self.x_off += self.speed - 1
+        if self.speed > 0:
+            self.y_off += 1
+            self.x_off += self.speed - 1
 
     def straight(self):
         self.x_off += self.speed
