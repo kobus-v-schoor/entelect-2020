@@ -88,7 +88,7 @@ class Trajectory:
         self.next_speed()
         self.straight()
 
-    def deccel(self):
+    def decel(self):
         self.prev_speed()
         self.straight()
 
@@ -174,7 +174,7 @@ def calc_trajectory(player, cmd):
     elif cmd == Cmd.ACCEL:
         traj.accel()
     elif cmd == Cmd.DECEL:
-        traj.deccel()
+        traj.decel()
     elif cmd == Cmd.LEFT:
         traj.left()
     elif cmd == Cmd.RIGHT:
