@@ -1,15 +1,23 @@
+import random
 from collections import deque
 
 from enums import Cmd, Speed
 from state import valid_actions, next_state
 
 class Weights:
-    def __init__(self, raw_weights):
-        self.pos = raw_weights['pos']
-        self.speed = raw_weights['speed']
-        self.boosts = raw_weights['boosts']
-        self.opp_pos = raw_weights['opp_pos']
-        self.opp_speed = raw_weights['opp_speed']
+    def __init__(self, raw_weights={}):
+        if raw_weights:
+            self.pos = raw_weights['pos']
+            self.speed = raw_weights['speed']
+            self.boosts = raw_weights['boosts']
+            self.opp_pos = raw_weights['opp_pos']
+            self.opp_speed = raw_weights['opp_speed']
+        else:
+            self.pos = random.random()
+            self.speed = random.random()
+            self.boosts = random.random()
+            self.opp_pos = -random.random()
+            self.opp_speed = -random.random()
 
         # boost advantage
         self.boosts *= Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
@@ -89,7 +97,7 @@ def search(state, opp_pred, max_search_depth=4):
 # does a search from the opponent's point of view.
 def opp_search(state):
     state = state.switch()
-    return search(state, lambda _: Cmd.ACCEL)
+    return search(state, lambda _: Cmd.ACCEL, max_search_depth=4)
 
 # scores, ranks and returns the best scoring option. scores are calculated using
 # the weights dict. state is the current state from which to score

@@ -6,6 +6,7 @@ from enums import Cmd
 from state import State, Player, StateTransition, calc_opp_cmd, next_state
 from maps import Map, GlobalMap
 from search import search, score, Weights, opp_search
+from ensemble import Ensemble
 
 class Bot:
     def __init__(self):
@@ -20,8 +21,9 @@ class Bot:
 
         with open('weights.json', 'r') as f:
             self.weights = Weights(json.load(f))
-        with open('weights.json', 'r') as f:
-            self.opp_weights = Weights(json.load(f))
+        self.opp_weights = self.weights
+
+        self.ensemble = Ensemble(size=1000)
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
@@ -75,8 +77,9 @@ class Bot:
         calc_ns = next_state(trans.from_state, trans.cmd, cmd)
         calc_ns.opponent.transfer_mods(trans.to_state.opponent)
 
-        # score ensemble
-        # TODO implement scoring
+        # score ensemble and choose new opponent weights
+        self.ensemble.update_scores(trans.from_state, cmd)
+        self.opp_weights = self.ensemble.best_weights()
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
