@@ -5,7 +5,7 @@ from collections import deque
 from enums import Cmd
 from state import State, Player, StateTransition, calc_opp_cmd, next_state
 from maps import Map, GlobalMap
-from search import search, score, Weights
+from search import search, score, Weights, opp_search
 
 class Bot:
     def __init__(self):
@@ -90,9 +90,7 @@ class Bot:
         if state.opponent.x >= self.state.map.max_x:
             return Cmd.ACCEL
 
-        switch = state.switch()
-        return score(search(switch, lambda _: Cmd.ACCEL), switch,
-                self.opp_weights)
+        return score(opp_search(state), state.switch(), self.opp_weights)
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move

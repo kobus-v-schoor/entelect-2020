@@ -73,6 +73,11 @@ def search(state, opp_pred, max_search_depth=4):
 
     return options
 
+# does a search from the opponent's point of view.
+def opp_search(state):
+    state = state.switch()
+    return search(state, lambda _: Cmd.ACCEL)
+
 # scores, ranks and returns the best scoring option. scores are calculated using
 # the weights dict. state is the current state from which to score
 # TODO endgame scoring
