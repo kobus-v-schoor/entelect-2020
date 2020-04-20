@@ -93,6 +93,12 @@ class Bot:
         if state.opponent.x >= self.state.map.max_x:
             return Cmd.ACCEL
 
+        # if we are stuck behind the opponent and they are standing still
+        # assume they are being mean and are trying to block us
+        if ((state.player.x, state.player.y) == (state.opponent.x - 1,
+            state.opponent.y) and state.opponent.speed == 0):
+            return Cmd.NOP
+
         return score(opp_search(state), state.switch(), self.opp_weights)
 
     # returns the cmd that should be executed given the current state
