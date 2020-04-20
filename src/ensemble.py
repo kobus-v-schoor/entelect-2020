@@ -2,8 +2,21 @@ from search import Weights, opp_search, score
 
 class Ensemble:
     def __init__(self, size):
-        self.weights = [Weights() for _ in range(size)]
-        self.scores = [0 for _ in range(size)]
+        self.weights = []
+
+        # add seed weights
+        self.weights.append(Weights({
+                    'pos': 1,
+                    'speed': 1,
+                    'boosts': 1.5,
+                    'opp_pos': -1,
+                    'opp_speed': -1,
+                    }))
+
+        # add random weights
+        self.weights += [Weights() for _ in range(size)]
+
+        self.scores = [0 for _ in range(len(self.weights))]
 
     def update_scores(self, state, wanted_cmd):
         # do search as opponent
