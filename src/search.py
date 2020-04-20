@@ -11,6 +11,19 @@ class Weights:
         self.opp_pos = raw_weights['opp_pos']
         self.opp_speed = raw_weights['opp_speed']
 
+        # boost advantage
+        self.boosts *= Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
+
+    # takes a from_state and to_state and calculates a numerical score
+    def score(self, from_state, to_state):
+        return sum([
+            self.pos * (to_state.player.x - from_state.player.x),
+            self.speed * to_state.player.speed,
+            self.boosts * (to_state.player.boosts - from_state.player.boosts),
+            self.opp_pos * (to_state.opponent.x - from_state.opponent.x),
+            self.opp_speed * to_state.opponent.speed
+            ])
+
     def __repr__(self):
         return str(vars(self))
 
@@ -82,20 +95,5 @@ def opp_search(state):
 # the weights dict. state is the current state from which to score
 # TODO endgame scoring
 def score(options, cur_state, weights):
-    boost_advantage = Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
-
-    def s(option):
-        actions, state = option
-        total = 0
-
-        total += weights.pos * (state.player.x - cur_state.player.x)
-        total += weights.speed * state.player.speed
-        total += (weights.boosts * (state.player.boosts -
-            cur_state.player.boosts) * boost_advantage)
-        total += weights.opp_pos * (state.opponent.x - cur_state.opponent.x)
-        total += weights.opp_speed * state.opponent.speed
-
-        return total
-
-    actions, final_state = max(options, key=s)
+    actions, _ = max(options, key=lambda o: weights.score(cur_state, o[1]))
     return actions[0]
