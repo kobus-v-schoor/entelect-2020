@@ -26,6 +26,13 @@ class Player:
             self.boosting = False
             self.boost_counter = 0
 
+    # transfer this player's mods to another (mods being boosts, oils, etc.)
+    def transfer_mods(self, other):
+        other.boosts = self.boosts
+        other.oils = self.oils
+        other.boosting = self.boosting
+        other.boost_counter = self.boost_counter
+
     def __hash__(self):
         return hash(tuple(vars(self).values()))
 

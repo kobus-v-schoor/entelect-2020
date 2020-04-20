@@ -3,7 +3,7 @@ import os
 from collections import deque
 
 from enums import Cmd
-from state import State, Player, StateTransition, calc_opp_cmd
+from state import State, Player, StateTransition, calc_opp_cmd, next_state
 from maps import Map, GlobalMap
 from search import search, score, Weights
 
@@ -54,6 +54,7 @@ class Bot:
 
         # backlog state transition
         if self.prev_state is not None:
+            # save state transition in backlog
             self.backlog.append(StateTransition(round_num - 1, self.prev_cmd,
                 self.prev_state, self.state))
 
@@ -70,11 +71,12 @@ class Bot:
         if cmd is None:
             return
 
+        # keep track of opponent's mods
+        calc_ns = next_state(trans.from_state, trans.cmd, cmd)
+        calc_ns.opponent.transfer_mods(trans.to_state.opponent)
+
         # score ensemble
         # TODO implement scoring
-
-        # keep track of opponent's powerups
-        # TODO implement keeping track of opponent's powerups
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
