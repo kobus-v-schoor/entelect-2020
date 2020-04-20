@@ -100,8 +100,17 @@ def opp_search(state):
     return search(state, lambda _: Cmd.ACCEL, max_search_depth=4)
 
 # scores, ranks and returns the best scoring option. scores are calculated using
-# the weights dict. state is the current state from which to score
-# TODO endgame scoring
+# the weights dict. state is the current state from which to score. if any of
+# the actions results in the game being finished only the speeds are taken into
+# account
 def score(options, cur_state, weights):
-    actions, _ = max(options, key=lambda o: weights.score(cur_state, o[1]))
+    max_x = cur_state.map.global_map.max_x
+
+    # check if any of actions result in a finish - we're in the endgame now
+    if any(f.player.x >= max_x for _, f in options):
+        key = lambda o: o[1].player.speed if o[1].player.x >= max_x else 0
+    else:
+        key = lambda o: weights.score(cur_state, o[1])
+
+    actions, _ = max(options, key=key)
     return actions[0]
