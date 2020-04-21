@@ -7,6 +7,7 @@ from state import State, Player, StateTransition, calc_opp_cmd, next_state
 from maps import Map, GlobalMap
 from search import search, score, Weights, opp_search
 from ensemble import Ensemble
+from log import log
 
 class Bot:
     def __init__(self):
@@ -71,6 +72,7 @@ class Bot:
         # get opponent's cmd
         cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
         if cmd is None:
+            log.error(f'unable to calculate opponent cmd for {trans.round_num}')
             return
 
         # keep track of opponent's mods
