@@ -13,11 +13,11 @@ game_config_file = os.path.join(starter_pack, 'game-config.json')
 logs_dir = os.path.join(starter_pack, 'match-logs')
 
 player_a = '/home/kobus/repo'
-player_b = '/home/kobus/opp'
+player_b = 'reference-bot/java/'
 min_lane = 1
 max_lane = 4
 
-match_count = 20
+match_count = 10
 
 def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, capture_output=True, shell=True, check=True)

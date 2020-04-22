@@ -92,9 +92,15 @@ for match in os.listdir('.'):
 for player in stats:
     s = stats[player]
     def avgl(key):
-        s[key] = round(sum(s[key]) / len(s[key]), 2)
+        if s[key]:
+            s[key] = round(sum(s[key]) / len(s[key]), 2)
+        else:
+            s[key] = 0
     def avg(key):
-        s[key] = round(s[key] / matches, 2)
+        if matches:
+            s[key] = round(s[key] / matches, 2)
+        else:
+            s[key] = 0
 
     avgl('rounds')
     avgl('turn_speed')
