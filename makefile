@@ -6,7 +6,10 @@ zip:
 	zip bot.zip $(files)
 
 clean:
-	rm -fvr bot.zip src/rounds src/__pycache__
+	rm -fvr bot.zip src/bot.log src/rounds src/__pycache__ profile.prof
 
 run:
 	cd src; python3 main.py
+
+profile:
+	cd src; ls -v rounds | python3 -m cProfile -o ../profile.prof main.py
