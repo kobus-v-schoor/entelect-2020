@@ -28,7 +28,10 @@ class Bot:
 
     # waits for next round number and returns it
     def wait_for_next_round(self):
-        return int(input())
+        try:
+            return int(input())
+        except EOFError:
+            return -1
 
     # reads and returns the state json file. returns None if failed
     def read_state(self, round_num):
@@ -118,6 +121,9 @@ class Bot:
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
+
+            if round_num < 0:
+                break
 
             # read the state file
             raw_state = self.read_state(round_num)
