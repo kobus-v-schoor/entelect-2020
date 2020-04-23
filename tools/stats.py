@@ -27,6 +27,7 @@ for match in os.listdir('.'):
             stats[player]['boost_used'] = 0
             stats[player]['boost_runs'] = []
             stats[player]['ahead'] = []
+            stats[player]['scores'] = []
 
     with open(os.path.join(match, last_round, 'endGameState.txt'), 'r') as f:
         for line in f.readlines():
@@ -37,6 +38,12 @@ for match in os.listdir('.'):
                 stats[w]['min_rounds'] = min(stats[w]['min_rounds'], rounds[-1])
                 stats[w]['max_rounds'] = max(stats[w]['max_rounds'], rounds[-1])
                 winner = w
+            else:
+                for player in players:
+                    if line.startswith(player):
+                        mid = line.split(':')[1]
+                        score = int(mid.rstrip(' health'))
+                        stats[player]['scores'].append(score)
 
     end_pos = {}
     for player in players:
@@ -108,8 +115,7 @@ for player in stats:
     avgl('boost_runs')
     avg('boost_used')
     avgl('ahead')
-
-    s['wins'] = int(s['wins'] / 2) # 2 matches for every round
+    avgl('scores')
 
 for player in stats:
     s = stats[player]
@@ -123,5 +129,6 @@ for player in stats:
     print('avg boosts used:\t', s['boost_used'])
     print('avg boost run length:\t', s['boost_runs'])
     print('avg lead when winner:\t', s['ahead'])
+    print('avg score:\t\t', s['scores'])
 
     print()

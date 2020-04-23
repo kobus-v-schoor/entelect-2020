@@ -104,17 +104,30 @@ def play_match(p1, p2):
                 for line in f.readlines():
                     if line.startswith('The winner is:'):
                         winner = line[15]
-                        break
+                    elif line[0] == 'A' or line[0] == 'B':
+                        mid = line.split(':')[1]
+                        score = int(mid.rstrip(' health'))
+                        if line[0] == 'A':
+                            a_score = score
+                        else:
+                            b_score = score
+
         if winner is None:
             return None
         elif winner == 'A':
-            return lp
+            return (lp, a_score, b_score)
         else:
-            return rp
+            return (rp, a_score, b_score)
 
     w1 = play(p1, p2)
     w2 = play(p2, p1)
-    return w1 if w1 == w2 else None
+    if w1[0] == w2[0]:
+        return w1[0]
+    else:
+        if w1[1] + w2[2] > w1[2] + w2[1]:
+            return p1
+        else:
+            return p2
 
 def next_round(pop, pbar):
     random.shuffle(pop)
@@ -123,22 +136,12 @@ def next_round(pop, pbar):
 
     for pair in pairs:
         p1, p2 = pair
-        p1c, p2c = 0, 0
-
-        for _ in range(rounds):
-            w = play_match(p1, p2)
-            if w is not None:
-                if w == p1:
-                    p1c += 1
-                else:
-                    p2c += 1
-            pbar.update()
-
-        winners.append(p1 if p1c > p2c else p2)
+        w = play_match(p1, p2)
+        pbar.update()
+        winners.append(random.choice((p1, p2)) if w is None else w)
 
     return winners
 
-rounds = 3
 pop_size = 2 ** 6 # 64
 generations = 50
 
@@ -153,7 +156,6 @@ print('starting training')
 
 runs = int(pop_size / 2) * generations
 runs += pop_size - 1
-runs *= rounds
 
 with tqdm(total=runs) as pbar:
     for gen in range(generations):

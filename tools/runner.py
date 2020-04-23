@@ -13,11 +13,14 @@ game_config_file = os.path.join(starter_pack, 'game-config.json')
 logs_dir = os.path.join(starter_pack, 'match-logs')
 
 player_a = '/home/kobus/repo'
-player_b = 'reference-bot/java/'
+player_b = '/home/kobus/opp'
+# player_b = 'reference-bot/java/'
+# player_b = '/home/kobus/opp-very-old'
 min_lane = 1
 max_lane = 4
 
 match_count = 10
+# match_count = 20
 
 def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, capture_output=True, shell=True, check=True)
@@ -55,13 +58,26 @@ def play_match():
                 for line in f.readlines():
                     if line.startswith('The winner is:'):
                         winner = line[15]
-                        break
-        return winner
+                    elif line[0] == 'A' or line[0] == 'B':
+                        mid = line.split(':')[1]
+                        score = int(mid.rstrip(' health'))
+                        if line[0] == 'A':
+                            a_score = score
+                        else:
+                            b_score = score
+        return (winner, a_score, b_score)
 
     w1 = play(min_lane, max_lane)
     w2 = play(max_lane, min_lane)
 
-    return w1 if w1 == w2 else None
+    prev_matches = sorted(os.listdir(logs_dir))[-2:]
+    if w1[0] == w2[0]:
+        shutil.rmtree(os.path.join(logs_dir, random.choice(prev_matches)))
+        return w1[0]
+    else:
+        w = 'A' if w1[1] + w2[1] > w1[2] + w2[2] else 'B'
+        shutil.rmtree(os.path.join(logs_dir, prev_matches[int(w == w1[0])]))
+        return w
 
 # remove existing logs
 if os.path.isdir(logs_dir):
@@ -77,12 +93,7 @@ with open(runner_config_file, 'w') as f:
 
 # play matches
 for match in tqdm(range(match_count)):
-    w = play_match()
-
-    if w is None:
-        prev_matches = sorted(os.listdir(logs_dir))[-2:]
-        for m in prev_matches:
-            shutil.rmtree(os.path.join(logs_dir, m))
+    play_match()
 
 def fixup(fname, drop=[], fix={}):
     with open(fname, 'r') as f:
