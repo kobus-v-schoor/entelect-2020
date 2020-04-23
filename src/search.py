@@ -4,23 +4,25 @@ from collections import deque
 from enums import Cmd, Speed
 from state import valid_actions, next_state
 
+boost_advantage = Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
+
 class Weights:
     def __init__(self, raw_weights={}):
-        if raw_weights:
+        if type(raw_weights) is dict:
             self.pos = raw_weights['pos']
             self.speed = raw_weights['speed']
             self.boosts = raw_weights['boosts']
             self.opp_pos = raw_weights['opp_pos']
             self.opp_speed = raw_weights['opp_speed']
         else:
-            self.pos = random.random()
-            self.speed = random.random()
-            self.boosts = random.random()
-            self.opp_pos = -random.random()
-            self.opp_speed = -random.random()
+            self.pos = raw_weights[0]
+            self.speed = raw_weights[1]
+            self.boosts = raw_weights[2]
+            self.opp_pos = raw_weights[3]
+            self.opp_speed = raw_weights[4]
 
         # boost advantage
-        self.boosts *= Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
+        self.boosts *= boost_advantage
 
     # takes a from_state and to_state and calculates a numerical score
     def score(self, from_state, to_state):
@@ -31,6 +33,23 @@ class Weights:
             self.opp_pos * (to_state.opponent.x - from_state.opponent.x),
             self.opp_speed * to_state.opponent.speed
             ])
+
+    # returns the signs for every weight
+    @staticmethod
+    def signs():
+        return [1, 1, 1, -1, -1]
+
+    # encodes a from and to state into a numerical array
+    @staticmethod
+    def encode(from_state, to_state):
+        return [
+                to_state.player.x - from_state.player.x,
+                to_state.player.speed,
+                boost_advantage * (to_state.player.boosts -
+                    from_state.player.boosts),
+                to_state.opponent.x - from_state.opponent.x,
+                to_state.opponent.speed,
+                ]
 
     def __repr__(self):
         return str(vars(self))
