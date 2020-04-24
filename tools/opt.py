@@ -52,8 +52,10 @@ def rand_ind():
             'pos': random.random(),
             'speed': random.random(),
             'boosts': random.random(),
+            'score': random.random(),
             'opp_pos': -random.random(),
-            'opp_speed': -random.random()
+            'opp_speed': -random.random(),
+            'opp_score': -random.random(),
             }
 
 def merge(p1, p2):
@@ -69,6 +71,9 @@ def merge(p1, p2):
             n[k] = (p1[k] + p2[k]) / 2
 
     return n
+
+def mut_pop_size(gen):
+    return int(0.25 * 16 ** (-gen / generations) * pop_size)
 
 def play_match(p1, p2):
     seed = random.randint(0, 2 ** 16)
@@ -121,7 +126,9 @@ def play_match(p1, p2):
 
     w1 = play(p1, p2)
     w2 = play(p2, p1)
-    if w1[0] == w2[0]:
+    if w1 is None or w2 is None:
+        return random.choice((p1, p2))
+    elif w1[0] == w2[0]:
         return w1[0]
     else:
         if w1[1] + w2[2] > w1[2] + w2[1]:
@@ -159,16 +166,17 @@ runs += pop_size - 1
 
 with tqdm(total=runs) as pbar:
     for gen in range(generations):
-        new_pop = next_round(population, pbar)
+        selection = next_round(population, pbar)
 
-        random.shuffle(new_pop)
-        pairs = list(zip(new_pop[::2], new_pop[1::2]))
+        muts = []
+        for _ in range(mut_pop_size(gen)):
+            muts.append(merge(random.choice(selection), rand_ind()))
 
-        for pair in pairs:
-            new_pop.append(merge(*pair))
-            new_pop.append(merge(random.choice(pair), rand_ind()))
+        offspring = []
+        while len(selection) + len(muts) + len(offspring) < pop_size:
+            offspring.append(merge(*random.sample(selection, 2)))
 
-        population = new_pop
+        population = selection + muts + offspring
 
     while len(population) > 1:
         population = next_round(population, pbar)
