@@ -12,14 +12,18 @@ class Weights:
             self.pos = raw_weights['pos']
             self.speed = raw_weights['speed']
             self.boosts = raw_weights['boosts']
+            self.pscore = raw_weights['score']
             self.opp_pos = raw_weights['opp_pos']
             self.opp_speed = raw_weights['opp_speed']
+            self.opp_score = raw_weights['opp_score']
         else:
             self.pos = raw_weights[0]
             self.speed = raw_weights[1]
             self.boosts = raw_weights[2]
-            self.opp_pos = raw_weights[3]
-            self.opp_speed = raw_weights[4]
+            self.pscore = raw_weights[3]
+            self.opp_pos = raw_weights[4]
+            self.opp_speed = raw_weights[5]
+            self.opp_score = raw_weights[6]
 
         # boost advantage
         self.boosts *= boost_advantage
@@ -30,14 +34,16 @@ class Weights:
             self.pos * (to_state.player.x - from_state.player.x),
             self.speed * to_state.player.speed,
             self.boosts * (to_state.player.boosts - from_state.player.boosts),
+            self.pscore * to_state.player.score,
             self.opp_pos * (to_state.opponent.x - from_state.opponent.x),
-            self.opp_speed * to_state.opponent.speed
+            self.opp_speed * to_state.opponent.speed,
+            self.opp_score * to_state.opponent.score,
             ])
 
     # returns the signs for every weight
     @staticmethod
     def signs():
-        return [1, 1, 1, -1, -1]
+        return [1, 1, 1, 1, -1, -1, -1]
 
     # encodes a from and to state into a numerical array
     @staticmethod
@@ -47,8 +53,10 @@ class Weights:
                 to_state.player.speed,
                 boost_advantage * (to_state.player.boosts -
                     from_state.player.boosts),
+                to_state.player.score,
                 to_state.opponent.x - from_state.opponent.x,
                 to_state.opponent.speed,
+                to_state.opponent.score,
                 ]
 
     def __repr__(self):

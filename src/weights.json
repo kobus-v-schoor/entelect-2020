@@ -2,6 +2,8 @@
 	"pos": 1.0,
 	"speed": 1.0,
 	"boosts": 1.63,
+	"score": 0.25,
 	"opp_pos": -1.0,
-	"opp_speed": -1.0
+	"opp_speed": -1.0,
+	"opp_score": -0.25
 }

@@ -26,12 +26,16 @@ class Player:
             self.boosting = False
             self.boost_counter = 0
 
+        # cannot be read directly from the state file
+        self.score = 0
+
     # transfer this player's mods to another (mods being boosts, oils, etc.)
     def transfer_mods(self, other):
         other.boosts = self.boosts
         other.oils = self.oils
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
+        # TODO add score?
 
     def __hash__(self):
         return hash(tuple(vars(self).values()))
@@ -122,19 +126,24 @@ class PathMods:
         self.oils = 0
         self.boosts = 0
         self.penalties = 0
+        self.score = 0
 
-    def penalise(self):
+    def penalise(self, block):
         self.penalties += 1
+        self.score -= 3 if block == Block.MUD else 4
 
     def oil_pickup(self):
         self.oils += 1
+        self.score += 4
 
     def boost_pickup(self):
         self.boosts += 1
+        self.score += 4
 
     def apply(self, player):
         player.oils += self.oils
         player.boosts += self.boosts
+        player.score += self.score
 
     def __repr__(self):
         return str(vars(self))
@@ -207,7 +216,7 @@ def calc_path_mods(state_map, player, traj):
             pass
         elif block == Block.MUD or block == Block.OIL_SPILL:
             traj.prev_speed(min_stop=True)
-            path_mods.penalise()
+            path_mods.penalise(block)
         elif block == Block.OIL_ITEM:
             path_mods.oil_pickup()
         elif block == Block.BOOST:
@@ -243,10 +252,12 @@ def next_state(state, cmd, opp_cmd):
         if cmd == Cmd.OIL:
             player.oils -= 1
             state.map[player.x - 1, player.y] = Block.OIL_SPILL
+            player.score += 4
         elif cmd == Cmd.BOOST:
             player.boosts -= 1
             player.boosting = True
             player.boost_counter = 5
+            player.score += 4
 
     track_powerups(state.player, cmd)
     track_powerups(state.opponent, opp_cmd)
