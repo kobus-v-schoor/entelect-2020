@@ -35,7 +35,6 @@ class Player:
         other.oils = self.oils
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
-        # TODO add score?
 
     def __hash__(self):
         return hash(tuple(vars(self).values()))
