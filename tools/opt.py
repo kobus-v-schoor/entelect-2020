@@ -8,6 +8,8 @@ import subprocess
 import json
 import random
 import math
+import copy
+from itertools import combinations
 from tqdm import tqdm
 
 bot_zip = '/home/kobus/bot.zip'
@@ -61,19 +63,18 @@ def rand_ind():
 def merge(p1, p2):
     n = {}
     for k in p1:
-        r = random.randint(0, 2)
-
-        if r == 0:
-            n[k] = p1[k]
-        elif r == 1:
-            n[k] = p2[k]
-        else:
-            n[k] = (p1[k] + p2[k]) / 2
+        n[k] = (p1[k] + p2[k]) / 2
 
     return n
 
+def mutate(p):
+    m = copy.deepcopy(p)
+    k = random.choice(list(m.keys()))
+    m[k] = random.random() * (1 if p[k] > 0 else -1)
+    return m
+
 def mut_pop_size(gen):
-    return int(0.25 * 16 ** (-gen / generations) * pop_size)
+    return int(0.25 * 2 ** (-gen / generations) * pop_size)
 
 def play_match(p1, p2):
     seed = random.randint(0, 2 ** 16)
@@ -136,21 +137,20 @@ def play_match(p1, p2):
         else:
             return p2
 
-def next_round(pop, pbar):
-    random.shuffle(pop)
-    pairs = list(zip(pop[::2], pop[1::2]))
-    winners = []
+def rank(pop, pbar):
+    keyfi = lambda d: tuple(sorted(d.items()))
+    score = {keyfi(p): 0 for p in pop}
 
-    for pair in pairs:
-        p1, p2 = pair
-        w = play_match(p1, p2)
+    for pair in combinations(pop, 2):
+        w = play_match(*pair)
+        if w is not None:
+            score[keyfi(w)] += 1
         pbar.update()
-        winners.append(random.choice((p1, p2)) if w is None else w)
 
-    return winners
+    return sorted(pop, key=lambda p: score[keyfi(p)], reverse=True)
 
-pop_size = 2 ** 6 # 64
-generations = 50
+pop_size = 2 ** 4
+generations = 20
 
 print('pop size:', pop_size)
 print('generations:', generations)
@@ -161,16 +161,19 @@ logs_dir = os.path.join(starter_dir, 'match-logs')
 
 print('starting training')
 
-runs = int(pop_size / 2) * generations
-runs += pop_size - 1
+runs = generations * sum(range(pop_size))
 
 with tqdm(total=runs) as pbar:
     for gen in range(generations):
-        selection = next_round(population, pbar)
+        selection = rank(population, pbar)[:int(pop_size/2)]
+
+        if gen + 1 == generations:
+            results = selection
+            continue
 
         muts = []
         for _ in range(mut_pop_size(gen)):
-            muts.append(merge(random.choice(selection), rand_ind()))
+            muts.append(mutate(random.choice(selection)))
 
         offspring = []
         while len(selection) + len(muts) + len(offspring) < pop_size:
@@ -178,12 +181,14 @@ with tqdm(total=runs) as pbar:
 
         population = selection + muts + offspring
 
-    while len(population) > 1:
-        population = next_round(population, pbar)
+print('winner:', results[0])
+if os.path.isdir('results'):
+    shutil.rmtree('results')
+os.makedirs('results')
 
-print('winner:', population[0])
-with open('result.json', 'w') as f:
-    json.dump(population[0], f, indent=4)
-    f.write('\n')
+for i, res in enumerate(results):
+    with open(os.path.join('results', f'{i}.json'), 'w') as f:
+        json.dump(res, f, indent=4)
+        f.write('\n')
 
 print('done')
