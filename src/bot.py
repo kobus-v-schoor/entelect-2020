@@ -112,6 +112,10 @@ class Bot:
         cmd = score(search(self.state, self.pred_opp), self.state,
                 self.weights)
 
+        if cmd == Cmd.NOP and self.state.player.oils > 3:
+            log.info('dropping oil instead of nop to bump score')
+            cmd = Cmd.OIL
+
         # TODO implement some way to write action's modifications to the map, at
         # this stage this is only for oil drops
 
