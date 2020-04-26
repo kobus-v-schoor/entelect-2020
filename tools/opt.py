@@ -9,45 +9,24 @@ import json
 import random
 import math
 import copy
+import string
+from multiprocessing import Pool
 from itertools import combinations
 from tqdm import tqdm
 
 bot_zip = '/home/kobus/bot.zip'
 starter_pack = '/home/kobus/starter-pack.zip'
 wd = '/home/kobus/tmp/opt'
-results = 'results'
+results_dir = 'results'
+weights_file = 'src/weights.json'
 
 def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, capture_output=True, shell=True, check=True)
 
-print('cleaning work dir')
+# remove working directory
 if os.path.isdir(wd):
     shutil.rmtree(wd)
 os.makedirs(wd)
-
-print('unzipping starter-pack')
-starter_dir = os.path.join(wd, 'starter-pack')
-os.makedirs(starter_dir)
-run(f'unzip {starter_pack}', wd)
-
-print('unzip player a')
-player_a = os.path.join(wd, 'player_a')
-os.makedirs(player_a)
-run(f'unzip {bot_zip}', player_a)
-
-print('unzip player b')
-player_b = os.path.join(wd, 'player_b')
-os.makedirs(player_b)
-run(f'unzip {bot_zip}', player_b)
-
-print('update starter config')
-config_file = os.path.join(starter_dir, 'game-runner-config.json')
-with open(config_file, 'r') as f:
-    config = json.load(f)
-config['player-a'] = player_a
-config['player-b'] = player_b
-with open(config_file, 'w') as f:
-    json.dump(config, f)
 
 def rand_ind():
     return {
@@ -76,7 +55,43 @@ def mutate(p):
 def mut_pop_size(gen):
     return int(0.25 * 2 ** (-gen / generations) * pop_size)
 
-def play_match(p1, p2):
+def random_id():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+
+def setup_wd(tmp):
+    starter_dir = os.path.join(tmp, 'starter-pack')
+    os.makedirs(starter_dir)
+    run(f'unzip {starter_pack}', tmp)
+
+    player_a = os.path.join(tmp, 'player_a')
+    os.makedirs(player_a)
+    run(f'unzip {bot_zip}', player_a)
+
+    player_b = os.path.join(tmp, 'player_b')
+    os.makedirs(player_b)
+    run(f'unzip {bot_zip}', player_b)
+
+    config_file = os.path.join(starter_dir, 'game-runner-config.json')
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    config['player-a'] = player_a
+    config['player-b'] = player_b
+    with open(config_file, 'w') as f:
+        json.dump(config, f)
+
+    logs_dir = os.path.join(starter_dir, 'match-logs')
+
+    return starter_dir, player_a, player_b, config_file, logs_dir
+
+def play_match(tup):
+    p1, p2 = tup
+
+    # setup starter_dirs
+    tmp_dir = '/'
+    while os.path.isdir(tmp_dir):
+        tmp_dir = os.path.join(wd, random_id())
+    starter_dir, player_a, player_b, config_file, logs_dir = setup_wd(tmp_dir)
+
     seed = random.randint(0, 2 ** 16)
 
     # set seed
@@ -127,6 +142,11 @@ def play_match(p1, p2):
 
     w1 = play(p1, p2)
     w2 = play(p2, p1)
+
+    # remove tmp dirs
+    shutil.rmtree(tmp_dir)
+
+    # calculate winner
     if w1 is None or w2 is None:
         return random.choice((p1, p2))
     elif w1[0] == w2[0]:
@@ -141,11 +161,11 @@ def rank(pop, pbar):
     keyfi = lambda d: tuple(sorted(d.items()))
     score = {keyfi(p): 0 for p in pop}
 
-    for pair in combinations(pop, 2):
-        w = play_match(*pair)
-        if w is not None:
-            score[keyfi(w)] += 1
-        pbar.update()
+    with Pool(int(os.cpu_count()/1.5)) as pool:
+        for w in pool.imap_unordered(play_match, combinations(pop, 2)):
+            if w is not None:
+                score[keyfi(w)] += 1
+            pbar.update()
 
     return sorted(pop, key=lambda p: score[keyfi(p)], reverse=True)
 
@@ -156,8 +176,6 @@ print('pop size:', pop_size)
 print('generations:', generations)
 
 population = [rand_ind() for _ in range(pop_size)]
-weights_file = 'src/weights.json'
-logs_dir = os.path.join(starter_dir, 'match-logs')
 
 print('starting training')
 
@@ -182,12 +200,12 @@ with tqdm(total=runs) as pbar:
         population = selection + muts + offspring
 
 print('winner:', results[0])
-if os.path.isdir('results'):
-    shutil.rmtree('results')
-os.makedirs('results')
+if os.path.isdir(results_dir):
+    shutil.rmtree(results_dir)
+os.makedirs(results_dir)
 
 for i, res in enumerate(results):
-    with open(os.path.join('results', f'{i}.json'), 'w') as f:
+    with open(os.path.join(results_dir, f'{i}.json'), 'w') as f:
         json.dump(res, f, indent=4)
         f.write('\n')
 
