@@ -21,7 +21,7 @@ results_dir = 'results'
 weights_file = 'src/weights.json'
 
 def run(cmd, cwd):
-    subprocess.run(cmd, cwd=cwd, capture_output=True, shell=True, check=True)
+    subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, shell=True, check=True)
 
 # remove working directory
 if os.path.isdir(wd):
@@ -161,7 +161,7 @@ def rank(pop, pbar):
     keyfi = lambda d: tuple(sorted(d.items()))
     score = {keyfi(p): 0 for p in pop}
 
-    with Pool(int(os.cpu_count()/1.5)) as pool:
+    with Pool(int(round(os.cpu_count() / 1.285))) as pool:
         for w in pool.imap_unordered(play_match, combinations(pop, 2)):
             if w is not None:
                 score[keyfi(w)] += 1
@@ -169,8 +169,8 @@ def rank(pop, pbar):
 
     return sorted(pop, key=lambda p: score[keyfi(p)], reverse=True)
 
-pop_size = 2 ** 4
-generations = 20
+pop_size = 2 ** 5
+generations = 50
 
 print('pop size:', pop_size)
 print('generations:', generations)
@@ -181,7 +181,7 @@ print('starting training')
 
 runs = generations * sum(range(pop_size))
 
-with tqdm(total=runs) as pbar:
+with tqdm(total=runs, smoothing=0) as pbar:
     for gen in range(generations):
         selection = rank(population, pbar)[:int(pop_size/2)]
 
