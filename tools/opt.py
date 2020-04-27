@@ -8,7 +8,6 @@ import subprocess
 import json
 import random
 import math
-import copy
 import string
 from multiprocessing import Pool
 from itertools import combinations
@@ -40,14 +39,17 @@ def rand_ind():
             }
 
 def merge(p1, p2):
-    n = {}
-    for k in p1:
-        n[k] = (p1[k] + p2[k]) / 2
+    ops = [
+            lambda k: p1[k],
+            lambda k: p2[k],
+            lambda k: (p1[k] + p2[k]) / 2,
+            ]
 
-    return n
+    return {key: random.choice(ops)(key) for key in p1}
 
+# mutate one of the keys
 def mutate(p):
-    m = copy.deepcopy(p)
+    m = {k: p[k] for k in p}
     k = random.choice(list(m.keys()))
     m[k] = random.random() * (1 if p[k] > 0 else -1)
     return m
@@ -169,8 +171,8 @@ def rank(pop, pbar):
 
     return sorted(pop, key=lambda p: score[keyfi(p)], reverse=True)
 
-pop_size = 2 ** 5
-generations = 50
+pop_size = 48
+generations = 40
 
 print('pop size:', pop_size)
 print('generations:', generations)
@@ -189,15 +191,24 @@ with tqdm(total=runs, smoothing=0) as pbar:
             results = selection
             continue
 
-        muts = []
-        for _ in range(mut_pop_size(gen)):
-            muts.append(mutate(random.choice(selection)))
+        # perform mutation
+        mut_len = mut_pop_size(gen)
+        muts = [mutate(m) for m in random.sample(selection, k=mut_len)]
 
-        offspring = []
-        while len(selection) + len(muts) + len(offspring) < pop_size:
-            offspring.append(merge(*random.sample(selection, 2)))
+        # generate offspring
+        off_len = pop_size - len(selection) - len(muts)
+        pairs = list(combinations(selection, 2))
+        offspring = [merge(*p) for p in random.sample(pairs, k=off_len)]
 
+        # create new population
         population = selection + muts + offspring
+
+        # remove duplicates
+        population = [dict(t) for t in {tuple(sorted(d.items())) for d in
+            population}]
+
+        # pad population if required
+        population += [rand_ind() for _ in range(pop_size-len(population))]
 
 print('winner:', results[0])
 if os.path.isdir(results_dir):
