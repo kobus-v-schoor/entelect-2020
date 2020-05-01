@@ -117,6 +117,13 @@ for player in stats:
     avgl('ahead')
     avgl('scores')
 
+    boost_dist = s['boost_used'] * s['boost_runs'] * 15
+    norm_runs = (1500 - boost_dist) / 9
+    # amount of rounds needed if the player was at speed 9 whenever they were
+    # not boosting, so basically driving absolutely perfectly
+    s['theory'] = round(norm_runs + (s['boost_used'] * s['boost_runs']), 2)
+    s['improve'] = round(s['rounds'] - s['theory'], 2)
+
 for player in stats:
     s = stats[player]
     print('player:\t\t\t', player)
@@ -124,6 +131,7 @@ for player in stats:
     print('min rounds:\t\t', s['min_rounds'])
     print('max rounds:\t\t', s['max_rounds'])
     print('avg rounds:\t\t', s['rounds'])
+    print('theoretical best:\t', s['theory'], f"({s['improve']})")
     print('avg turn speed:\t\t', s['turn_speed'])
     print('avg eff speed:\t\t', s['eff_speed'])
     print('avg boosts used:\t', s['boost_used'])
