@@ -62,6 +62,11 @@
   able to train while waiting for the opponent without timing out, the very
   low number of samples made for very poor models (most of the time only
   predicting one move)
+* For some reason, whenever decelerating was allowed, every now and then the
+  car would go and stop right before the opponent and just stop, blocking the
+  other player and stopping the game. I couldn't get this eliminated even with
+  score penalties for stopping. Decelerating thus had to be disabled as a valid
+  move
 
 ## Improvements to make in the next phase
 
