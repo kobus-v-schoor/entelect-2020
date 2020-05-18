@@ -17,24 +17,35 @@ class Player:
             powerups = raw_player['powerups']
             self.boosts = len([b for b in powerups if b == 'BOOST'])
             self.oils = len([o for o in powerups if o == 'OIL'])
+            self.lizards = len([o for o in powerups if o == 'LIZARD'])
+            self.tweets = len([o for o in powerups if o == 'TWEET'])
 
             self.boosting = raw_player['boosting']
             self.boost_counter = raw_player['boostCounter']
         else:
             self.boosts = 0
             self.oils = 0
+            self.lizards = 0
+            self.tweets = 0
+
             self.boosting = False
             self.boost_counter = 0
 
         # cannot be read directly from the state file
+        self.cybertruck = None
         self.score = 0
 
     # transfer this player's mods to another (mods being boosts, oils, etc.)
     def transfer_mods(self, other):
         other.boosts = self.boosts
         other.oils = self.oils
+        other.lizards = self.lizards
+        other.tweets = self.tweets
+
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
+
+        other.cybertruck = self.cybertruck
 
     def __hash__(self):
         return hash(tuple(vars(self).values()))
@@ -87,6 +98,9 @@ class Trajectory:
         else:
             self.speed = prev_speed(self.speed)
 
+    def min_speed(self):
+        self.speed = Speed.SPEED_1.value
+
     def accel(self):
         self.next_speed()
         self.straight()
@@ -124,12 +138,22 @@ class PathMods:
     def __init__(self):
         self.oils = 0
         self.boosts = 0
+        self.lizards = 0
+        self.tweets = 0
+
         self.penalties = 0
         self.score = 0
 
     def penalise(self, block):
         self.penalties += 1
-        self.score -= 3 if block == Block.MUD else 4
+        if block == Block.MUD:
+            self.score -= 3
+        elif block == Block.OIL_SPILL:
+            self.score -= 4
+        elif block == Block.WALL:
+            self.score -= 5
+        elif block == Block.CYBERTRUCK:
+            self.score -= 7
 
     def oil_pickup(self):
         self.oils += 1
@@ -139,9 +163,20 @@ class PathMods:
         self.boosts += 1
         self.score += 4
 
+    def lizard_pickup(self):
+        self.lizards += 1
+        self.score += 4
+
+    def tweet_pickup(self):
+        self.tweets += 1
+        self.score += 4
+
     def apply(self, player):
         player.oils += self.oils
         player.boosts += self.boosts
+        player.lizards += self.lizards
+        player.tweets += self.tweets
+
         player.score += self.score
 
     def __repr__(self):
@@ -170,6 +205,8 @@ def valid_actions(state):
         valid.append(Cmd.BOOST)
     if state.player.oils > 0 and state.player.x > state.opponent.x:
         valid.append(Cmd.OIL)
+    if state.player.lizards > 0:
+        valid.append(Cmd.LIZARD)
 
     return valid
 
@@ -191,18 +228,18 @@ def calc_trajectory(player, cmd):
         traj.boost()
     elif cmd == Cmd.OIL:
         traj.straight()
+    elif cmd == Cmd.LIZARD:
+        traj.straight()
 
     return traj
 
-def calc_path_mods(state_map, player, traj):
+def calc_path_mods(state_map, player, traj, lizarding):
     path_mods = PathMods()
 
-    # FIXME workaround for bug present in engine 2020.1.6 where turning onto a
-    # special block doesn't count it, so starting one block further than you
-    # actual should
-
-    # start = player.x if traj.y_off else player.x + 1
-    start = player.x + 1
+    if not lizarding:
+        start = player.x if traj.y_off else player.x + 1
+    else:
+        start = player.x + traj.x_off
     end = player.x + traj.x_off
     for x in range(start, end + 1):
         # went outside the map
@@ -216,10 +253,22 @@ def calc_path_mods(state_map, player, traj):
         elif block == Block.MUD or block == Block.OIL_SPILL:
             traj.prev_speed(min_stop=True)
             path_mods.penalise(block)
+        elif block == Block.WALL:
+            traj.min_speed()
+            path_mods.penalise(block)
+        elif block == Block.CYBERTRUCK:
+            traj.min_speed()
+            traj.x_off = x - player.x - 1
+            path_mods.penalise(block)
+            break
         elif block == Block.OIL_ITEM:
             path_mods.oil_pickup()
         elif block == Block.BOOST:
             path_mods.boost_pickup()
+        elif block == Block.LIZARD:
+            path_mods.lizard_pickup()
+        elif block == Block.TWEET:
+            path_mods.tweet_pickup()
 
     return path_mods
 
@@ -250,12 +299,15 @@ def next_state(state, cmd, opp_cmd):
     def track_powerups(player, cmd):
         if cmd == Cmd.OIL:
             player.oils -= 1
-            state.map[player.x - 1, player.y] = Block.OIL_SPILL
+            state.map[player.x, player.y] = Block.OIL_SPILL
             player.score += 4
         elif cmd == Cmd.BOOST:
             player.boosts -= 1
             player.boosting = True
             player.boost_counter = 5
+            player.score += 4
+        elif cmd == Cmd.LIZARD:
+            player.lizards -= 1
             player.score += 4
 
     track_powerups(state.player, cmd)
@@ -306,8 +358,11 @@ def next_state(state, cmd, opp_cmd):
     check_collisions(state.player, state.opponent, player_traj, opp_traj)
 
     ## check players' path for penalties and powerups
-    player_mods = calc_path_mods(state.map, state.player, player_traj)
-    opp_mods = calc_path_mods(state.map, state.opponent, opp_traj)
+
+    player_mods = calc_path_mods(state.map, state.player, player_traj,
+                                 cmd == Cmd.LIZARD)
+    opp_mods = calc_path_mods(state.map, state.opponent, opp_traj,
+                              opp_cmd == Cmd.LIZARD)
 
     ## apply trajectories and mods
 
@@ -318,6 +373,7 @@ def next_state(state, cmd, opp_cmd):
     opp_mods.apply(state.opponent)
 
     ## check if boosting was cancelled
+
     def track_boosting(player):
         if player.boosting and player.speed != Speed.BOOST_SPEED.value:
             player.boosting = False
