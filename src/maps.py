@@ -2,12 +2,46 @@ import copy
 
 from enums import Block
 
+class BlockOverlay:
+    def __init__(self, block):
+        self.block = Block(block)
+        self.overlay = None
+
+    def set_cybertruck(self):
+        self.overlay = Block.CYBERTRUCK
+
+    def unset(self):
+        self.overlay = None
+
+    def get_block(self):
+        if self.overlay is not None:
+            return self.overlay
+        return self.block
+
+    def __eq__(self, other):
+        if type(other) is Block:
+            return self.get_block() == other
+        elif type(other) is BlockOverlay:
+            return self.get_block() == other.get_block()
+        raise ValueError(f'unsupported type {type(other)} for operand ==')
+
+    def __repr__(self):
+        gb = self.get_block()
+        if gb != self.block:
+            return f'{repr(gb)} ({repr(self.block)})'
+        else:
+            return repr(gb)
+
+    def __str__(self):
+        return repr(self)
+
 class GlobalMap:
     def __init__(self, x_size, y_size):
         # map dimensions are flipped since generally y << x - this leads to
         # better memory efficiency since we have a few long lists compared to
         # many small lists. will still be x, y in get_item
-        self.map = [[Block.EMPTY for _ in range(x_size)] for _ in range(y_size)]
+        self.map = [[BlockOverlay(Block.EMPTY) for _ in range(x_size)] for _ in
+                    range(y_size)]
         self.min_x, self.min_y = 1, 1
         self.max_x, self.max_y = x_size, y_size
 
@@ -16,7 +50,7 @@ class GlobalMap:
         x, y = idx
         if self.min_x <= x <= self.max_x:
             if self.min_y <= y <= self.max_y:
-                self.map[y - self.min_y][x - self.min_x] = val
+                self.map[y - self.min_y][x - self.min_x] = BlockOverlay(val)
                 return
         raise IndexError
 
@@ -47,6 +81,9 @@ class Map:
             x = w['position']['x']
             y = w['position']['y']
             global_map[x, y] = Block(w['surfaceObject'])
+
+            if w['isOccupiedByCyberTruck']:
+                global_map[x, y].set_cybertruck()
 
             self.min_x = min(x, self.min_x)
             self.min_y = min(y, self.min_y)
@@ -82,7 +119,7 @@ class Map:
 
         if self.global_map.min_x <= x <= self.global_map.max_x:
             if self.global_map.min_y <= y <= self.global_map.max_y:
-                self.view[pos] = block
+                self.view[pos] = BlockOverlay(block)
                 return
         raise IndexError
 

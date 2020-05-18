@@ -7,6 +7,11 @@ class Block(enum.Enum):
     OIL_ITEM = 3
     FINISH_LINE = 4
     BOOST = 5
+    WALL = 6
+    LIZARD = 7
+    TWEET = 8
+
+    CYBERTRUCK = 100
 
 class Speed(enum.Enum):
     MIN_SPEED = 0
@@ -48,3 +53,5 @@ class Cmd(enum.Enum):
 
     BOOST = 'USE_BOOST'
     OIL = 'USE_OIL'
+    LIZARD = 'USE_LIZARD'
+    TWEET = 'USE_TWEET'
