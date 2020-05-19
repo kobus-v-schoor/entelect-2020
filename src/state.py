@@ -144,6 +144,11 @@ class PathMods:
         self.penalties = 0
         self.score = 0
 
+        # for any obstacles that were consumed/destroyed in the process
+        self.consumed = {
+            'cybertrucks': []
+        }
+
     def penalise(self, block):
         self.penalties += 1
         if block == Block.MUD:
@@ -170,6 +175,9 @@ class PathMods:
     def tweet_pickup(self):
         self.tweets += 1
         self.score += 4
+
+    def hit_cybertruck(self, pos):
+        self.consumed['cybertrucks'].append(pos)
 
     def apply(self, player):
         player.oils += self.oils
@@ -207,6 +215,8 @@ def valid_actions(state):
         valid.append(Cmd.OIL)
     if state.player.lizards > 0:
         valid.append(Cmd.LIZARD)
+    if state.player.tweets > 0 and state.player.x > state.opponent.x:
+        valid.append(Cmd.TWEET)
 
     return valid
 
@@ -230,6 +240,8 @@ def calc_trajectory(player, cmd):
         traj.straight()
     elif cmd == Cmd.LIZARD:
         traj.straight()
+    elif cmd == Cmd.TWEET:
+        traj.straight()
 
     return traj
 
@@ -241,12 +253,13 @@ def calc_path_mods(state_map, player, traj, lizarding):
     else:
         start = player.x + traj.x_off
     end = player.x + traj.x_off
+    y = player.y + traj.y_off
     for x in range(start, end + 1):
         # went outside the map
         if x >= state_map.global_map.max_x:
             break
 
-        block = state_map[x, player.y + traj.y_off]
+        block = state_map[x, y]
 
         if block == Block.EMPTY:
             pass
@@ -258,8 +271,10 @@ def calc_path_mods(state_map, player, traj, lizarding):
             path_mods.penalise(block)
         elif block == Block.CYBERTRUCK:
             traj.min_speed()
+            # stop right before cybertruck
             traj.x_off = x - player.x - 1
             path_mods.penalise(block)
+            path_mods.hit_cybertruck((x, y))
             break
         elif block == Block.OIL_ITEM:
             path_mods.oil_pickup()
@@ -271,6 +286,12 @@ def calc_path_mods(state_map, player, traj, lizarding):
             path_mods.tweet_pickup()
 
     return path_mods
+
+# given some state, aim a cybertuck at the player
+def aim_cybertruck(state, player):
+    if player.x < state.map.max_x - 1:
+        return (player.x + 1, player.y)
+    return (state.map.max_x - 1, player.y)
 
 # calculates the next state given the player and opponent's cmd
 # NOTE it is assumed that both cmds are valid
@@ -309,12 +330,16 @@ def next_state(state, cmd, opp_cmd):
         elif cmd == Cmd.LIZARD:
             player.lizards -= 1
             player.score += 4
+        elif cmd == Cmd.TWEET:
+            player.tweets -= 1
+            player.score += 4
 
     track_powerups(state.player, cmd)
     track_powerups(state.opponent, opp_cmd)
 
     ## check for collisions
     # two types: fender-bender from behind or ending up on same block
+    # FIXME check for lizarding
 
     def check_collisions(player_a, player_b, traj_a, traj_b):
         # run-in from behind - occurs when in the same lane and one bot tries to
@@ -364,6 +389,9 @@ def next_state(state, cmd, opp_cmd):
     opp_mods = calc_path_mods(state.map, state.opponent, opp_traj,
                               opp_cmd == Cmd.LIZARD)
 
+    consumed = player_mods.consumed
+    consumed = {k: consumed[k] + opp_mods.consumed[k] for k in consumed}
+
     ## apply trajectories and mods
 
     player_traj.apply(state.player)
@@ -382,10 +410,68 @@ def next_state(state, cmd, opp_cmd):
     track_boosting(state.player)
     track_boosting(state.opponent)
 
+    ## keep track of cybertrucks
+
+    def check_cybertrucks(state, cmd, opp_cmd, consumed):
+        player = state.player
+        opponent = state.opponent
+
+        ## remove cybertrucks that were crashed into
+        for pos in consumed['cybertrucks']:
+            for p in [player, opponent]:
+                if p.cybertruck == pos:
+                    p.cybertruck = None
+                    x, y = pos
+                    state.map[x, y].unset_cybertruck()
+                    break
+
+        ## resolve cybertruck placement collisions
+        def rufund(player):
+            player.tweets += 1
+            player.score -= 4
+
+        tweeted = cmd == Cmd.TWEET
+        opp_tweeted = opp_cmd == Cmd.TWEET
+
+        if tweeted:
+            pos = aim_cybertruck(state, opponent)
+            if pos == opponent.cybertruck:
+                refund(player)
+                tweeted = False
+        if opp_tweeted:
+            opp_pos = aim_cybertruck(state, player)
+            if opp_pos == player.cybertruck:
+                refund(opponent)
+                opp_tweeted = False
+
+        if tweeted and opp_tweeted:
+            if pos == opp_pos:
+                refund(player)
+                refund(opponent)
+                tweeted = False
+                opp_tweeted = False
+
+        ## place new cybertrucks
+        def place(player, pos):
+            if player.cybertruck is not None:
+                x, y = player.cybertruck
+                state.map[x, y].unset_cybertruck()
+            player.cybertruck = pos
+            x, y = pos
+            state.map[x, y].set_cybertruck()
+
+        if tweeted:
+            place(player, pos)
+        if opp_tweeted:
+            place(opponent, opp_pos)
+
+    check_cybertrucks(state, cmd, opp_cmd, consumed)
+
     return state
 
 # given the player's cmd, the initial state and the state thereafter this
 # calculates cmd the opponent took. returns None if unable to figure out
+# TODO calc for new lizarding and tweeting
 def calc_opp_cmd(cmd, from_state, to_state):
     x, y = from_state.opponent.x, from_state.opponent.y
     speed = from_state.opponent.speed

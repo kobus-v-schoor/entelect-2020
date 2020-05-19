@@ -4,6 +4,7 @@ from collections import deque
 
 from enums import Cmd
 from state import State, Player, StateTransition, calc_opp_cmd, next_state
+from state import aim_cybertruck
 from maps import Map, GlobalMap
 from search import search, score, Weights, opp_search
 from ensemble import Ensemble
@@ -86,9 +87,19 @@ class Bot:
         self.ensemble.update_scores(trans.from_state, cmd)
         self.opp_weights = self.ensemble.best_weights()
 
+    def aim_cybertruck(self):
+        cmd = Cmd.TWEET
+        opp_cmd = self.pred_opp(self.state)
+        ns = next_state(self.state, cmd, opp_cmd)
+        return aim_cybertruck(ns, ns.opponent)
+
     # executes cmd for round_num
     def exec(self, round_num, cmd):
-        print(f'C;{round_num};{cmd.value}')
+        if cmd == Cmd.TWEET:
+            x, y = self.aim_cybertruck()
+            print(f'C;{round_num};{cmd.value} {y} {x}')
+        else:
+            print(f'C;{round_num};{cmd.value}')
 
     # predicts the opponent's move based on the given state
     # also does a tree search with the assumption that we're just going to

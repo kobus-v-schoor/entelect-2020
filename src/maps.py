@@ -10,8 +10,9 @@ class BlockOverlay:
     def set_cybertruck(self):
         self.overlay = Block.CYBERTRUCK
 
-    def unset(self):
-        self.overlay = None
+    def unset_cybertruck(self):
+        if self.overlay == Block.CYBERTRUCK:
+            self.overlay = None
 
     def get_block(self):
         if self.overlay is not None:
