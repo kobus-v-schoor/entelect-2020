@@ -1,136 +1,247 @@
 #! /usr/bin/env python3
 
-import json
 import os
 import sys
-import math
+import enum
+import json
 import time
-import sys
 
-PLAYER = ['1', '2']
-EMPTY_BLOCK = '░'
-MUD_BLOCK = '▓'
-BOOST_BLOCK = '»'
-OIL_BLOCK = 'Φ'
-OIL_SPILL = '█'
-FINISH_LINE = '║'
-
-BLOCKS = [EMPTY_BLOCK, MUD_BLOCK, OIL_SPILL, OIL_BLOCK, FINISH_LINE,
-        BOOST_BLOCK]
-
-rnd = 1
-round_dir_fmt = 'Round {0:03}'
-round_dir = round_dir_fmt.format(rnd)
-
-hist = []
+## settings ##
 
 x_size = 1500
 y_size = 4
-track_map = [[' ' for _ in range(y_size)] for _ in range(x_size)]
+x_behind = 5
+x_ahead = 20
 
-# player view
-blocks_behind = 5
-blocks_ahead = 20
+fps = 15
+rps = 1 # rounds per second
+delay = 1 # insert delay after every round
+lift_fow = True # lifts the fog of war so that x_ahead blocks are always shown
 
-fps = 10
-spr = 1 # seconds per round
-round_delay = 0 # seconds delay after every round
+class Block(enum.Enum):
+    EMPTY = 0
+    MUD = 1
+    OIL_SPILL = 2
+    OIL_ITEM = 3
+    FINISH_LINE = 4
+    BOOST = 5
+    WALL = 6
+    LIZARD = 7
+    TWEET = 8
 
-def clear_line():
-    sys.stdout.write('\r')
-    sys.stdout.write('\033[K')
+    CYBERTRUCK = 100
 
-def one_line_up():
-    sys.stdout.write('\033[F')
+block_renders = {
+    Block.EMPTY: '░',
+    Block.MUD: '▓',
+    Block.OIL_SPILL: '█',
+    Block.OIL_ITEM: 'Φ',
+    Block.FINISH_LINE: '║',
+    Block.BOOST: '»',
+    Block.WALL: '#',
+    Block.LIZARD: '∱',
+    Block.TWEET: 'T',
+    Block.CYBERTRUCK: 'C',
+}
 
-def clear_n_lines(n):
+if len(sys.argv) > 1:
+    match_dir = sys.argv[1]
+else:
+    match_dir = os.getcwd()
+
+files = list(os.listdir(match_dir))
+players = sorted([p[:-4] for p in files if p.endswith('.csv')])
+rounds = sorted([p for p in files if p.startswith('Round')])
+
+framebuffer = []
+
+def read_state(cur_round, next_round, player):
+    state_file = os.path.join(match_dir, cur_round, player, 'JsonMap.json')
+    with open(state_file, 'r') as f:
+        cur_state = json.load(f)
+
+    if next_round is not None:
+        state_file = os.path.join(match_dir, next_round, player,
+                                  'JsonMap.json')
+        with open(state_file, 'r') as f:
+            next_state = json.load(f)
+    else:
+        state_file = os.path.join(match_dir, cur_round, 'GlobalState.json')
+        with open(state_file, 'r') as f:
+            next_state = json.load(f)
+
+
+    def extract_pos(state):
+        pos = lambda s: (state[s]['position']['x'], state[s]['position']['y'])
+        return {
+            state['player']['id']: pos('player'),
+            state['opponent']['id']: pos('opponent'),
+        }
+
+    def end_extract_pos(state):
+        pos = {}
+        for player in state['players']:
+            pos[player['id']] = (player['position']['blockNumber'],
+                                 player['position']['lane'])
+        return pos
+
+    players_start = extract_pos(cur_state)
+    if next_round is not None:
+        players_end = extract_pos(next_state)
+    else:
+        players_end = end_extract_pos(next_state)
+
+    track_map = {}
+    max_x = -1
+
+    for lane in cur_state['worldMap']:
+        for block in lane:
+            x = block['position']['x']
+            y = block['position']['y']
+            pos = (x, y)
+            max_x = max(max_x, x)
+            track_map[pos] = block_renders[Block(block['surfaceObject'])]
+
+            if block.get('isOccupiedByCyberTruck', False):
+                track_map[pos] = block_renders[Block.CYBERTRUCK]
+
+    if lift_fow and next_round is not None:
+        upto_x = players_end[cur_state['player']['id']][0] + x_ahead
+
+        for lane in next_state['worldMap']:
+            for block in lane:
+                x = block['position']['x']
+                y = block['position']['y']
+                pos = (x, y)
+
+                if x < max_x:
+                    continue
+                if x > upto_x:
+                    break
+
+                track_map[pos] = block_renders[Block(block['surfaceObject'])]
+
+                if block.get('isOccupiedByCyberTruck', False):
+                    track_map[pos] = block_renders[Block.CYBERTRUCK]
+
+    info = {}
+    info['name'] = player
+    info['id'] = cur_state['player']['id']
+    info['speed'] = cur_state['player']['speed']
+    info['state'] = cur_state['player']['state']
+    info['powerups'] = {
+        'oils': cur_state['player']['powerups'].count('OIL'),
+        'boosts': cur_state['player']['powerups'].count('BOOST'),
+        'lizards': cur_state['player']['powerups'].count('LIZARD'),
+        'tweets': cur_state['player']['powerups'].count('TWEET'),
+    }
+    info['boosting'] = cur_state['player']['boosting']
+    info['boostcount'] = cur_state['player']['boostCounter']
+
+    cmd = {}
+    cmd_file = os.path.join(match_dir, cur_round, player, 'PlayerCommand.txt')
+    with open(cmd_file, 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+
+            if line.startswith('Command:'):
+                cmd['cmd'] = line[9:]
+            elif line.startswith('Execution time:'):
+                cmd['exec_time'] = line[16:]
+
+    return {
+        'map': track_map,
+        'info': info,
+        'cmd': cmd,
+        'start': players_start,
+        'end': players_end,
+    }
+
+def render(state, frame_prog):
+    add = lambda line: framebuffer.append(line)
+
+    add(f"{state['info']['name']} (id: {state['info']['id']})")
+
+    pid = state['info']['id']
+    start_pos = state['start'][pid]
+    end_pos = state['end'][pid]
+    speed = state['info']['speed']
+    add(f'pos: {start_pos} -> {end_pos}, speed: {speed}')
+
+    add(f"state: {state['info']['state']}")
+    add(f"cmd: {state['cmd']['cmd']}, exec time: {state['cmd']['exec_time']}")
+
+    powerups = state['info']['powerups']
+    powerups = ', '.join([f'{k}: {powerups[k]}' for k in powerups])
+    add(f'powerups: {powerups}')
+
+    pos = {}
+
+    for player in state['start']:
+        start = state['start'][player]
+        end = state['end'][player]
+        x = int(round(start[0] + (end[0] - start[0]) * frame_prog))
+        if frame_prog:
+            y = end[1]
+        else:
+            y = start[1]
+
+        pos[(x, y)] = player
+
+        if player == pid:
+            x_ref, y_ref = x, y
+
+    for y in range(1, y_size + 1):
+        blocks = []
+        x_start = max(1, x_ref - x_behind)
+        if lift_fow:
+            x_end = min(x_size + 1, x_ref + x_ahead + 1)
+        else:
+            x_end = min(x_size + 1, start_pos[0] + x_ahead + 1)
+        for x in range(x_start, x_end):
+            if (x, y) not in state['map']:
+                continue
+            blocks.append(state['map'][(x, y)])
+            if (x, y) in pos:
+                blocks[-1] = str(pos[(x, y)])
+
+        add('[' + ''.join(blocks) + ']')
+
+    add('')
+
+def clear_lines(n):
+    def clear_line():
+        sys.stdout.write('\r')
+        sys.stdout.write('\033[K')
+
+    def one_line_up():
+        sys.stdout.write('\033[F')
+
     for i in range(n):
         clear_line()
         if i + 1 != n:
             one_line_up()
 
-def render_map(x, y, pos, state):
-    print('id:', state['id'], 'y:', state['y'], 'x:', state['x'], 'speed:',
-            state['speed'])
-    for yb in range(y_size):
-        print('[', end='')
-        for xb in range(-blocks_behind, blocks_ahead + 1):
-            if x + xb >= x_size:
-                break
-            if (x + xb, yb) in pos:
-                print(PLAYER[pos[(x + xb, yb)]], end='')
-            else:
-                print(track_map[x + xb][yb], end='')
-        print(']')
-    print('boosts:', state['boosts'], 'oils:', state['oils'])
-    print('state:', state['state'])
-    print()
+def print_buffer(framebuffer):
+    print('\n'.join(framebuffer))
 
-def clear_renders(renders):
-    for _ in range(renders):
-        clear_n_lines(9)
+for cur_round, next_round in zip(rounds, rounds[1:] + [None]):
+    states = {}
+    for player in players:
+        states[player] = read_state(cur_round, next_round, player)
 
-pwd = '.'
-if len(sys.argv) > 1:
-    pwd = sys.argv[1]
+    frames = int(fps / rps)
+    for frame in range(frames):
+        prev_lines = len(framebuffer)
+        framebuffer.clear()
 
-while os.path.isdir(os.path.join(pwd, round_dir)):
-    with open(os.path.join(os.path.join(pwd, round_dir), 'GlobalState.json'),
-            'r') as state_file:
-        state = json.load(state_file)
-    rnd += 1
-    round_dir = round_dir_fmt.format(rnd)
+        framebuffer += [cur_round, '']
 
-    players = []
-    for p in range(2):
-        p = state['players'][p]
-        player = {}
-        player['x'] = p['position']['blockNumber']
-        player['y'] = p['position']['lane']
-        player['speed'] = p['speed']
-        player['boosts'] = len([x for x in p['powerups'] if x == 'BOOST'])
-        player['oils'] = len([x for x in p['powerups'] if x == 'OIL'])
-        player['state'] = p['state']
-        player['id'] = p['id']
-        players.append(player)
+        for player in players:
+            render(states[player], frame / frames)
 
-    hist.append(players)
-
-    player_count = len(players)
-
-    if len(hist) == 1:
-        continue
-
-    for block in state['blocks']:
-        x, y = block['position']['blockNumber'], block['position']['lane']
-        track_map[x-1][y-1] = BLOCKS[block['surfaceObject']]
-
-    if len(hist) > 2:
-        clear_renders(len(pos))
-    for frame in range(int(spr * fps)):
-        pos = {} # holds all the positions of all the players
-        players = {}
-        prev = {}
-        for idx in range(player_count):
-            prev_x = hist[-2][idx]['x']
-            nxt_x = hist[-1][idx]['x']
-
-            nxt_y = int(hist[-1][idx]['y'])
-            cur_x = math.floor((frame / (spr * fps) * (nxt_x - prev_x)) + prev_x)
-            cur_x = int(cur_x)
-
-            pk = (cur_x-1, nxt_y-1)
-            pos[pk] = hist[-1][idx]['id']-1
-            players[pk] = hist[-2][idx]
-            prev[pk] = (prev_x, nxt_y)
-
-        for p in pos:
-            if round_delay:
-                render_map(*prev[p], pos, players[p])
-            else:
-                render_map(*p, pos, players[p])
+        clear_lines(prev_lines + 1)
+        print_buffer(framebuffer)
+        if delay and frame == 0:
+            time.sleep(delay)
         time.sleep(1 / fps)
-        if frame + 1 < spr * fps:
-            clear_renders(len(pos))
-    if round_delay:
-        time.sleep(round_delay)
