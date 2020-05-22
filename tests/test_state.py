@@ -1,4 +1,5 @@
-from sloth.state import Player
+from sloth.state import Player, State
+from sloth.maps import Map
 
 class TestPlayer:
     def setup_player(self):
@@ -75,3 +76,41 @@ class TestPlayer:
         assert player1 is not player2
         assert hash(player1) == hash(player2)
         assert player1 == player2
+
+class TestState:
+    def test_switch(self):
+        player = Player({
+            'id': 1,
+            'position': {
+                'x': 1,
+                'y': 1,
+            },
+            'speed': 5
+        })
+
+        opponent = Player({
+            'id': 2,
+            'position': {
+                'x': 1,
+                'y': 4,
+            },
+            'speed': 5
+        })
+
+        class TmpMap:
+            def __init__(self):
+                self.called = False
+            def move_window(self, *args):
+                self.called = True
+
+        state = State()
+        state.player = player
+        state.opponent = opponent
+        state.map = TmpMap()
+
+        switch = state.switch()
+
+        assert switch is not state
+        assert switch.player == state.opponent
+        assert switch.opponent == state.player
+        assert switch.map.called == True
