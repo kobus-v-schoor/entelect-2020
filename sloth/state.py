@@ -15,10 +15,10 @@ class Player:
         # powerup info if available
         if 'powerups' in raw_player:
             powerups = raw_player['powerups']
-            self.boosts = len([b for b in powerups if b == 'BOOST'])
-            self.oils = len([o for o in powerups if o == 'OIL'])
-            self.lizards = len([o for o in powerups if o == 'LIZARD'])
-            self.tweets = len([o for o in powerups if o == 'TWEET'])
+            self.boosts = powerups.count('BOOST')
+            self.oils = powerups.count('OIL')
+            self.lizards = powerups.count('LIZARD')
+            self.tweets = powerups.count('TWEET')
 
             self.boosting = raw_player['boosting']
             self.boost_counter = raw_player['boostCounter']
