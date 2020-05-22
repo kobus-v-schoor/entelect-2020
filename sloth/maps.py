@@ -4,7 +4,12 @@ from sloth.enums import Block
 
 class BlockOverlay:
     def __init__(self, block):
-        self.block = Block(block)
+        if type(block) is Block:
+            self.block = block
+        elif type(block) is BlockOverlay:
+            self.block = block.block
+        else:
+            self.block = Block(block)
         self.overlay = None
 
     def set_cybertruck(self):
