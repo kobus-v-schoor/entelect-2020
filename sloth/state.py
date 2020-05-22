@@ -1,6 +1,6 @@
 import copy
 
-from enums import Speed, next_speed, prev_speed, Cmd, Block
+from sloth.enums import Speed, next_speed, prev_speed, Cmd, Block
 
 class Player:
     def __init__(self, raw_player):

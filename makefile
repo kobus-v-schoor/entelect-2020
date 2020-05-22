@@ -1,15 +1,23 @@
-files = bot.json requirements.txt src/weights.json src/__init__.py src/main.py \
-		src/bot.py src/enums.py src/maps.py src/state.py src/search.py \
-		src/ensemble.py src/log.py
+files = bot.json requirements.txt sloth/weights.json sloth/__init__.py \
+		sloth/main.py sloth/bot.py sloth/enums.py sloth/maps.py \
+		sloth/state.py sloth/search.py sloth/ensemble.py sloth/log.py
 
 zip:
 	zip bot.zip $(files)
 
 clean:
-	rm -fvr bot.zip src/bot.log src/rounds src/__pycache__ profile.prof
+	rm -fvr sloth/bot.log tests/bot.log sloth/rounds
+	rm -fvr bot.zip
+	rm -fvr sloth/__pycache__ profile.prof
 
 run:
-	cd src; python3 main.py
+	cd sloth; python3 main.py
 
 profile:
-	cd src; ls -v rounds | python3 -m cProfile -o ../profile.prof main.py
+	cd sloth; ls -v rounds | python3 -m cProfile -o ../profile.prof main.py
+
+lint:
+	python3 -m flake8 sloth --count --statistics --show-source
+
+test:
+	cd tests; pytest-3 -v

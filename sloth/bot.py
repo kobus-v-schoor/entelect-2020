@@ -2,12 +2,12 @@ import json
 import os
 from collections import deque
 
-from enums import Cmd
-from state import State, Player, StateTransition, calc_opp_cmd, next_state
-from maps import Map, GlobalMap
-from search import search, offensive_search, score, Weights, opp_search
-from ensemble import Ensemble
-from log import log
+from sloth.enums import Cmd
+from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
+from sloth.maps import Map, GlobalMap
+from sloth.search import search, offensive_search, score, Weights, opp_search
+from sloth.ensemble import Ensemble
+from sloth.log import log
 
 class Bot:
     def __init__(self):

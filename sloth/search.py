@@ -1,11 +1,12 @@
 import random
 from collections import deque
 
-from enums import Cmd, Speed
-from state import valid_actions, next_state
+from sloth.enums import Cmd, Speed
+from sloth.state import valid_actions, next_state
 
 boost_advantage = Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
 
+# TODO remove opponent from scoring
 class Weights:
     def __init__(self, raw_weights={}):
         if type(raw_weights) is dict:

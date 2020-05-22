@@ -1,6 +1,6 @@
 import copy
 
-from enums import Block
+from sloth.enums import Block
 
 class BlockOverlay:
     def __init__(self, block):
