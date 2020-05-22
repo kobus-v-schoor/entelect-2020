@@ -32,7 +32,6 @@ class Player:
             self.boost_counter = 0
 
         # cannot be read directly from the state file
-        self.cybertruck = None
         self.score = 0
 
     # transfer this player's mods to another (mods being boosts, oils, etc.)
@@ -44,8 +43,6 @@ class Player:
 
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
-
-        other.cybertruck = self.cybertruck
 
     def __hash__(self):
         return hash(tuple(vars(self).values()))
@@ -197,7 +194,7 @@ class StateTransition:
         self.from_state = from_state
         self.to_state = to_state
 
-# returns a list of valid actions that the player can take for a given state
+# returns a list of valid movement actions for a given state
 def valid_actions(state):
     valid = [Cmd.NOP]
 
@@ -211,12 +208,8 @@ def valid_actions(state):
         valid.append(Cmd.RIGHT)
     if state.player.boosts > 0 and not state.player.boosting:
         valid.append(Cmd.BOOST)
-    if state.player.oils > 0 and state.player.x > state.opponent.x:
-        valid.append(Cmd.OIL)
     if state.player.lizards > 0:
         valid.append(Cmd.LIZARD)
-    if state.player.tweets > 0 and state.player.x > state.opponent.x:
-        valid.append(Cmd.TWEET)
 
     return valid
 
@@ -287,14 +280,9 @@ def calc_path_mods(state_map, player, traj, lizarding):
 
     return path_mods
 
-# given some state, aim a cybertuck at the player
-def aim_cybertruck(state, player):
-    if player.x < state.map.max_x - 1:
-        return (player.x + 1, player.y)
-    return (state.map.max_x - 1, player.y)
-
 # calculates the next state given the player and opponent's cmd
-# NOTE it is assumed that both cmds are valid
+# NOTE it is assumed that both cmds are valid movement cmds
+# NOTE offensive cmds are not supported
 def next_state(state, cmd, opp_cmd):
     state = state.copy()
 
@@ -318,20 +306,13 @@ def next_state(state, cmd, opp_cmd):
     ## check for powerups that were used and consume them
 
     def track_powerups(player, cmd):
-        if cmd == Cmd.OIL:
-            player.oils -= 1
-            state.map[player.x, player.y] = Block.OIL_SPILL
-            player.score += 4
-        elif cmd == Cmd.BOOST:
+        if cmd == Cmd.BOOST:
             player.boosts -= 1
             player.boosting = True
             player.boost_counter = 5
             player.score += 4
         elif cmd == Cmd.LIZARD:
             player.lizards -= 1
-            player.score += 4
-        elif cmd == Cmd.TWEET:
-            player.tweets -= 1
             player.score += 4
 
     track_powerups(state.player, cmd)
@@ -410,68 +391,22 @@ def next_state(state, cmd, opp_cmd):
     track_boosting(state.player)
     track_boosting(state.opponent)
 
-    ## keep track of cybertrucks
+    ## keep track of cybertruck collisions
 
-    def check_cybertrucks(state, cmd, opp_cmd, consumed):
-        player = state.player
-        opponent = state.opponent
-
+    def check_cybertrucks(state, consumed):
         ## remove cybertrucks that were crashed into
         for pos in consumed['cybertrucks']:
-            for p in [player, opponent]:
-                if p.cybertruck == pos:
-                    p.cybertruck = None
-                    x, y = pos
-                    state.map[x, y].unset_cybertruck()
-                    break
-
-        ## resolve cybertruck placement collisions
-        def rufund(player):
-            player.tweets += 1
-            player.score -= 4
-
-        tweeted = cmd == Cmd.TWEET
-        opp_tweeted = opp_cmd == Cmd.TWEET
-
-        if tweeted:
-            pos = aim_cybertruck(state, opponent)
-            if pos == opponent.cybertruck:
-                refund(player)
-                tweeted = False
-        if opp_tweeted:
-            opp_pos = aim_cybertruck(state, player)
-            if opp_pos == player.cybertruck:
-                refund(opponent)
-                opp_tweeted = False
-
-        if tweeted and opp_tweeted:
-            if pos == opp_pos:
-                refund(player)
-                refund(opponent)
-                tweeted = False
-                opp_tweeted = False
-
-        ## place new cybertrucks
-        def place(player, pos):
-            if player.cybertruck is not None:
-                x, y = player.cybertruck
-                state.map[x, y].unset_cybertruck()
-            player.cybertruck = pos
             x, y = pos
-            state.map[x, y].set_cybertruck()
+            state.map[x, y].unset_cybertruck()
 
-        if tweeted:
-            place(player, pos)
-        if opp_tweeted:
-            place(opponent, opp_pos)
-
-    check_cybertrucks(state, cmd, opp_cmd, consumed)
+    check_cybertrucks(state, consumed)
 
     return state
 
 # given the player's cmd, the initial state and the state thereafter this
-# calculates cmd the opponent took. returns None if unable to figure out
-# TODO calc for new lizarding and tweeting
+# calculates cmd the opponent took. returns None if unable to figure out.
+# note that this only attempts to calculate cmds that were movement cmds, so
+# offensive cmds like oil and tweeting will be calculated as NOP
 def calc_opp_cmd(cmd, from_state, to_state):
     x, y = from_state.opponent.x, from_state.opponent.y
     speed = from_state.opponent.speed
@@ -482,10 +417,9 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x_off = fx - x
     y_off = fy - y
 
-    # when returning NOP check if it wasn't maybe an oil drop
+    # check for operations that almost look like a NOP
     def check_nop():
-        if x > from_state.player.x and from_state.map[x-1,y] == Block.OIL_SPILL:
-            return Cmd.OIL
+        # TODO check for lizarding
         return Cmd.NOP
 
     # fast checks that will catch most of the actions taken by the opponent

@@ -4,9 +4,8 @@ from collections import deque
 
 from enums import Cmd
 from state import State, Player, StateTransition, calc_opp_cmd, next_state
-from state import aim_cybertruck
 from maps import Map, GlobalMap
-from search import search, score, Weights, opp_search
+from search import search, offensive_search, score, Weights, opp_search
 from ensemble import Ensemble
 from log import log
 
@@ -87,25 +86,15 @@ class Bot:
         self.ensemble.update_scores(trans.from_state, cmd)
         self.opp_weights = self.ensemble.best_weights()
 
-    def aim_cybertruck(self):
-        cmd = Cmd.TWEET
-        opp_cmd = self.pred_opp(self.state)
-        ns = next_state(self.state, cmd, opp_cmd)
-        return aim_cybertruck(ns, ns.opponent)
-
     # executes cmd for round_num
     def exec(self, round_num, cmd):
-        if cmd == Cmd.TWEET:
-            x, y = self.aim_cybertruck()
-            print(f'C;{round_num};{cmd.value} {y} {x}')
-        else:
-            print(f'C;{round_num};{cmd.value}')
+        print(f'C;{round_num};{cmd.value}')
 
     # predicts the opponent's move based on the given state
-    # also does a tree search with the assumption that we're just going to
-    # accelerate
+    # NOTE only predicts movement and not offensive actions
     def pred_opp(self, state):
         # if opponent is outside our view just assume they are accelerating
+        # since we won't be able to predict anything better than that
         if state.opponent.x >= self.state.map.max_x:
             return Cmd.ACCEL
 
@@ -120,15 +109,14 @@ class Bot:
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        cmd = score(search(self.state, self.pred_opp), self.state,
-                self.weights)
+        cmd = score(search(self.state, self.pred_opp, max_search_depth=4),
+                    self.state, self.weights)
 
-        if cmd == Cmd.NOP and self.state.player.oils > 3:
-            log.info('dropping oil instead of nop to bump score')
-            cmd = Cmd.OIL
+        if cmd == Cmd.NOP:
+            cmd = offensive_search(self.state)
 
-        # TODO implement some way to write action's modifications to the map, at
-        # this stage this is only for oil drops
+        # TODO update the global map if commands result in map changes for
+        # later use by calc_opp_cmd
 
         return cmd
 

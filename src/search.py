@@ -68,7 +68,8 @@ class Weights:
 # a list of actions taken which achieves the final state. opp_pred must be a
 # callable that takes the current state as an argument and which will return a
 # valid action for the opponent.
-def search(state, opp_pred, max_search_depth=4):
+# this search only considers movement actions and not any offensive actions.
+def search(state, opp_pred, max_search_depth):
     options = []
 
     # holds the bfs queue
@@ -121,7 +122,7 @@ def search(state, opp_pred, max_search_depth=4):
 
     return options
 
-# does a search from the opponent's point of view.
+# does a movement search from the opponent's point of view.
 def opp_search(state):
     state = state.switch()
     return search(state, lambda _: Cmd.ACCEL, max_search_depth=3)
@@ -141,3 +142,9 @@ def score(options, cur_state, weights):
 
     actions, _ = max(options, key=key)
     return actions[0]
+
+def offensive_search(state):
+    if state.player.oils > 3:
+        return Cmd.OIL
+
+    return Cmd.NOP
