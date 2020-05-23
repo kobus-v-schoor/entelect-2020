@@ -234,20 +234,40 @@ def calc_trajectory(player, cmd):
 
     return traj
 
-def calc_path_mods(state_map, player, traj, lizarding):
-    path_mods = PathMods()
-
+def gen_path(state_map, player, traj, lizarding):
     if not lizarding:
         start = player.x if traj.y_off else player.x + 1
     else:
         start = player.x + traj.x_off
     end = player.x + traj.x_off
+
     y = player.y + traj.y_off
     for x in range(start, end + 1):
         # went outside the map
         if x >= state_map.global_map.max_x:
             break
+        yield (x, y)
 
+def resolve_cybertruck_collisions(state_map, player, traj, lizarding):
+    path_mods = PathMods()
+
+    for x, y in gen_path(state_map, player, traj, lizarding):
+        block = state_map[x, y]
+
+        if block == Block.CYBERTRUCK:
+            traj.min_speed()
+            # stop right before cybertruck
+            traj.x_off = x - player.x - 1
+            path_mods.penalise(block)
+            path_mods.hit_cybertruck((x, y))
+            break
+
+    return path_mods
+
+def calc_path_mods(state_map, player, traj, lizarding):
+    path_mods = PathMods()
+
+    for x, y in gen_path(state_map, player, traj, lizarding):
         block = state_map[x, y]
 
         if block == Block.EMPTY:
@@ -258,13 +278,6 @@ def calc_path_mods(state_map, player, traj, lizarding):
         elif block == Block.WALL:
             traj.min_speed()
             path_mods.penalise(block)
-        elif block == Block.CYBERTRUCK:
-            traj.min_speed()
-            # stop right before cybertruck
-            traj.x_off = x - player.x - 1
-            path_mods.penalise(block)
-            path_mods.hit_cybertruck((x, y))
-            break
         elif block == Block.OIL_ITEM:
             path_mods.oil_pickup()
         elif block == Block.BOOST:
@@ -314,30 +327,53 @@ def next_state(state, cmd, opp_cmd):
     track_powerups(state.player, cmd)
     track_powerups(state.opponent, opp_cmd)
 
+    ## check for cybertruck collisions
+
+    player_cyber_mods = resolve_cybertruck_collisions(state.map, state.player,
+                                                      player_traj,
+                                                      cmd == Cmd.LIZARD)
+    opp_cyber_mods = resolve_cybertruck_collisions(state.map, state.opponent,
+                                                      opp_traj,
+                                                      cmd == Cmd.LIZARD)
+
+    player_cyber_mods.apply(state.player)
+    opp_cyber_mods.apply(state.opponent)
+
+    consumed = player_cyber_mods.consumed
+    consumed = {k: consumed[k] + opp_cyber_mods.consumed[k] for k in consumed}
+
     ## check for collisions
     # two types: fender-bender from behind or ending up on same block
-    # FIXME check for lizarding
 
-    def check_collisions(player_a, player_b, traj_a, traj_b):
-        # run-in from behind - occurs when in the same lane and one bot tries to
-        # drive through the other. conditions:
+    def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
+                         b_lizarding):
+        # run-in from behind - occurs when in the same lane and one bot tries
+        # to drive through the other. conditions:
         # started in the same lane
         # ended in the same lane
         # one passed the other during the round
+        # the one that was behind didn't lizard over the other
 
-        # player that was behind ends up one block behind the player that was in
-        # front at the start of the turn
+        # player that was behind ends up one block behind the player that was
+        # in front at the start of the turn
 
-        started_same = player_a.y == player_b.y
-        ended_same = traj_a.y_off == traj_b.y_off
-        started_ahead = player_a.x > player_b.x
-        ended_ahead = player_a.x + traj_a.x_off > player_b.x + traj_b.x_off
-        drove_through = started_ahead != ended_ahead
+        started_same_lane = player_a.y == player_b.y
+        ended_same_lane = traj_a.y_off == traj_b.y_off
+        a_started_ahead = player_a.x > player_b.x
+        behind_lizards = b_lizarding if a_started_ahead else a_lizarding
+        a_ended_ahead = player_a.x + traj_a.x_off > player_b.x + traj_b.x_off
+        b_ended_ahead = player_b.x + traj_b.x_off > player_a.x + traj_a.x_off
 
-        if started_same and ended_same and drove_through:
+        # both players end up on the same block
+        if a_ended_ahead == b_ended_ahead:
+            a_ended_ahead = not a_started_ahead
+
+        drove_through = a_started_ahead != a_ended_ahead and not behind_lizards
+
+        if started_same_lane and ended_same_lane and drove_through:
             # whoever is behind cannot pass the player in front
             # check if player a started ahead
-            if started_ahead:
+            if a_started_ahead:
                 traj_b.x_off = player_a.x + traj_a.x_off - 1 - player_b.x
             else:
                 traj_a.x_off = player_b.x + traj_b.x_off - 1 - player_a.x
@@ -357,7 +393,8 @@ def next_state(state, cmd, opp_cmd):
             traj_a.y_off = 0
             traj_b.y_off = 0
 
-    check_collisions(state.player, state.opponent, player_traj, opp_traj)
+    check_collisions(state.player, state.opponent, player_traj, opp_traj,
+                     cmd == Cmd.LIZARD, opp_cmd == Cmd.LIZARD)
 
     ## check players' path for penalties and powerups
 
@@ -366,7 +403,7 @@ def next_state(state, cmd, opp_cmd):
     opp_mods = calc_path_mods(state.map, state.opponent, opp_traj,
                               opp_cmd == Cmd.LIZARD)
 
-    consumed = player_mods.consumed
+    consumed = {k: consumed[k] + player_mods.consumed[k] for k in consumed}
     consumed = {k: consumed[k] + opp_mods.consumed[k] for k in consumed}
 
     ## apply trajectories and mods

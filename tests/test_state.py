@@ -514,3 +514,170 @@ class TestNextState:
             assert cur.speed == Speed.SPEED_1.value
             assert cur.score - prev.score == -7
             assert nstate.map[prev.x + 2, prev.y] == block
+
+    def test_hit_cybertruck_both_samelane(self):
+        state = setup_state()
+
+        state.player.x = 1
+        state.player.y = 1
+        state.player.speed = 9
+
+        state.opponent.x = 2
+        state.opponent.y = 1
+        state.opponent.speed = 6
+
+        state.map[5, 1].set_cybertruck()
+
+        nstate = next_state(state, Cmd.NOP, Cmd.NOP)
+
+        assert nstate.player.y == state.opponent.y == 1
+        assert nstate.opponent.x == 4 # one behind cybertruck
+        assert nstate.opponent.speed == Speed.SPEED_1.value
+        assert nstate.player.x == 3 # one behind opponent (rear-end)
+        assert nstate.player.speed == Speed.SPEED_1.value
+        assert nstate.map[5, 1] == Block.EMPTY
+
+
+    def test_hit_cybertruck_both_difflane(self):
+        state = setup_state()
+
+        state.player.x = 1
+        state.player.y = 1
+        state.player.speed = 9
+
+        state.opponent.x = 1
+        state.opponent.y = 3
+        state.opponent.speed = 6
+
+        state.map[3, 2].set_cybertruck()
+
+        nstate = next_state(state, Cmd.RIGHT, Cmd.LEFT)
+
+        # both end up right behind the cybertruck, where they collide and move
+        # back -1x into their original lanes
+        assert nstate.player.x == 1
+        assert nstate.player.y == 1
+        assert nstate.player.speed == Speed.SPEED_1.value
+
+        assert nstate.opponent.x == 1
+        assert nstate.opponent.y == 3
+        assert nstate.opponent.speed == Speed.SPEED_1.value
+
+        assert nstate.map[3, 2] == Block.EMPTY
+
+    def test_collision_same_block(self):
+        state = setup_state()
+        state.player.x = 1
+        state.player.y = 2
+        state.opponent.x = 1
+        state.opponent.y = 4
+
+        nstate = next_state(state, Cmd.RIGHT, Cmd.LEFT)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x == prev.x + prev.speed - 2
+            assert cur.speed == prev.speed
+            assert cur.score == prev.score
+
+    def test_collision_rear_end(self):
+        state = setup_state()
+
+        state.player.speed = Speed.SPEED_1.value
+        state.opponent.speed = Speed.SPEED_1.value
+
+        state.player.x = 2
+        state.player.y = 2
+        state.opponent.x = 1
+        state.opponent.y = 2
+
+        nstate = next_state(state, Cmd.NOP, Cmd.ACCEL)
+
+        assert nstate.player.x == state.player.x + state.player.speed
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == nstate.player.x - 1
+        assert nstate.opponent.y == state.opponent.y
+
+        state.player.x = 1
+        state.player.y = 2
+        state.opponent.x = 2
+        state.opponent.y = 2
+
+        nstate = next_state(state, Cmd.ACCEL, Cmd.NOP)
+
+        assert nstate.player.x == nstate.opponent.x - 1
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
+        assert nstate.opponent.y == state.opponent.y
+
+    def test_collision_rear_end_same_block(self):
+        state = setup_state()
+
+        state.player.speed = 8
+        state.opponent.speed = 9
+
+        state.player.x = 2
+        state.player.y = 2
+        state.opponent.x = 1
+        state.opponent.y = 2
+
+        nstate = next_state(state, Cmd.NOP, Cmd.NOP)
+
+        assert (state.player.x + state.player.speed ==
+                state.opponent.x + state.opponent.speed)
+        assert nstate.player.x == state.player.x + state.player.speed
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == nstate.player.x - 1
+        assert nstate.opponent.y == state.opponent.y
+
+        state.player.speed = 9
+        state.opponent.speed = 8
+
+        state.player.x = 1
+        state.player.y = 2
+        state.opponent.x = 2
+        state.opponent.y = 2
+
+        nstate = next_state(state, Cmd.NOP, Cmd.NOP)
+
+        assert (state.player.x + state.player.speed ==
+                state.opponent.x + state.opponent.speed)
+        assert nstate.player.x == nstate.opponent.x - 1
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
+        assert nstate.opponent.y == state.opponent.y
+
+    def test_collision_lizarding(self):
+        state = setup_state()
+
+        state.player.x = 2
+        state.player.y = 2
+        state.player.speed = Speed.SPEED_1.value
+        state.opponent.x = 1
+        state.opponent.y = 2
+        state.opponent.speed = Speed.MAX_SPEED.value
+
+        nstate = next_state(state, Cmd.NOP, Cmd.LIZARD)
+
+        assert state.player.x > state.opponent.x
+        assert nstate.player.x == state.player.x + state.player.speed
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
+        assert nstate.opponent.y == state.opponent.y
+        assert nstate.opponent.x > nstate.player.x
+
+        state.player.x = 1
+        state.player.y = 2
+        state.player.speed = Speed.MAX_SPEED.value
+        state.opponent.x = 2
+        state.opponent.y = 2
+        state.opponent.speed = Speed.SPEED_1.value
+
+        nstate = next_state(state, Cmd.LIZARD, Cmd.NOP)
+
+        assert state.opponent.x > state.player.x
+        assert nstate.player.x == state.player.x + state.player.speed
+        assert nstate.player.y == state.player.y
+        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
+        assert nstate.opponent.y == state.opponent.y
+        assert nstate.player.x > nstate.opponent.x
