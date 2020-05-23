@@ -213,6 +213,14 @@ def valid_actions(state):
 
     return valid
 
+def count_boosting(player):
+    if player.boosting:
+        player.boost_counter -= 1
+        # boost ran out
+        if player.boost_counter == 0:
+            player.boosting = False
+            player.speed = Speed.MAX_SPEED.value
+
 def calc_trajectory(player, cmd):
     traj = Trajectory()
     traj.speed = player.speed
@@ -233,6 +241,66 @@ def calc_trajectory(player, cmd):
         traj.straight()
 
     return traj
+
+def track_powerups(player, cmd):
+    if cmd == Cmd.BOOST:
+        player.boosts -= 1
+        player.boosting = True
+        player.boost_counter = 5
+        player.score += 4
+    elif cmd == Cmd.LIZARD:
+        player.lizards -= 1
+        player.score += 4
+
+def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
+                     b_lizarding):
+    # two types: fender-bender from behind or ending up on same block
+
+    # run-in from behind - occurs when in the same lane and one bot tries
+    # to drive through the other. conditions:
+    # started in the same lane
+    # ended in the same lane
+    # one passed the other during the round
+    # the one that was behind didn't lizard over the other
+
+    # player that was behind ends up one block behind the player that was
+    # in front at the start of the turn
+
+    started_same_lane = player_a.y == player_b.y
+    ended_same_lane = traj_a.y_off == traj_b.y_off
+    a_started_ahead = player_a.x > player_b.x
+    behind_lizards = b_lizarding if a_started_ahead else a_lizarding
+    a_ended_ahead = player_a.x + traj_a.x_off > player_b.x + traj_b.x_off
+    b_ended_ahead = player_b.x + traj_b.x_off > player_a.x + traj_a.x_off
+
+    # both players end up on the same block
+    if a_ended_ahead == b_ended_ahead:
+        a_ended_ahead = not a_started_ahead
+
+    drove_through = a_started_ahead != a_ended_ahead and not behind_lizards
+
+    if started_same_lane and ended_same_lane and drove_through:
+        # whoever is behind cannot pass the player in front
+        # check if player a started ahead
+        if a_started_ahead:
+            traj_b.x_off = player_a.x + traj_a.x_off - 1 - player_b.x
+        else:
+            traj_a.x_off = player_b.x + traj_b.x_off - 1 - player_a.x
+
+    # same destination block
+    # both players stay in the same lane and their x_off gets decremented
+    # by 1
+    x_same = player_a.x + traj_a.x_off == player_b.x + traj_b.x_off
+    y_same = player_a.y + traj_a.y_off == player_b.y + traj_b.y_off
+
+    if x_same and y_same:
+        # -1 x_off penalty
+        traj_a.x_off -= 1
+        traj_b.x_off -= 1
+
+        # back to original lane
+        traj_a.y_off = 0
+        traj_b.y_off = 0
 
 def gen_path(state_map, player, traj, lizarding):
     if not lizarding:
@@ -289,6 +357,17 @@ def calc_path_mods(state_map, player, traj, lizarding):
 
     return path_mods
 
+def track_boosting(player):
+    if player.boosting and player.speed != Speed.BOOST_SPEED.value:
+        player.boosting = False
+        player.boost_counter = 0
+
+def check_cybertrucks(state, consumed):
+    ## remove cybertrucks that were crashed into
+    for pos in consumed['cybertrucks']:
+        x, y = pos
+        state.map[x, y].unset_cybertruck()
+
 # calculates the next state given the player and opponent's cmd
 # NOTE it is assumed that both cmds are valid movement cmds
 # NOTE offensive cmds are not supported
@@ -296,39 +375,18 @@ def next_state(state, cmd, opp_cmd):
     state = state.copy()
 
     ## keep track of boosting counters
-    def count_boosting(player):
-        if player.boosting:
-            player.boost_counter -= 1
-            # boost ran out
-            if player.boost_counter == 0:
-                player.boosting = False
-                player.speed = Speed.MAX_SPEED.value
-
     count_boosting(state.player)
     count_boosting(state.opponent)
 
     ## calculate trajectories
-
     player_traj = calc_trajectory(state.player, cmd)
     opp_traj = calc_trajectory(state.opponent, opp_cmd)
 
     ## check for powerups that were used and consume them
-
-    def track_powerups(player, cmd):
-        if cmd == Cmd.BOOST:
-            player.boosts -= 1
-            player.boosting = True
-            player.boost_counter = 5
-            player.score += 4
-        elif cmd == Cmd.LIZARD:
-            player.lizards -= 1
-            player.score += 4
-
     track_powerups(state.player, cmd)
     track_powerups(state.opponent, opp_cmd)
 
     ## check for cybertruck collisions
-
     player_cyber_mods = resolve_cybertruck_collisions(state.map, state.player,
                                                       player_traj,
                                                       cmd == Cmd.LIZARD)
@@ -343,61 +401,10 @@ def next_state(state, cmd, opp_cmd):
     consumed = {k: consumed[k] + opp_cyber_mods.consumed[k] for k in consumed}
 
     ## check for collisions
-    # two types: fender-bender from behind or ending up on same block
-
-    def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
-                         b_lizarding):
-        # run-in from behind - occurs when in the same lane and one bot tries
-        # to drive through the other. conditions:
-        # started in the same lane
-        # ended in the same lane
-        # one passed the other during the round
-        # the one that was behind didn't lizard over the other
-
-        # player that was behind ends up one block behind the player that was
-        # in front at the start of the turn
-
-        started_same_lane = player_a.y == player_b.y
-        ended_same_lane = traj_a.y_off == traj_b.y_off
-        a_started_ahead = player_a.x > player_b.x
-        behind_lizards = b_lizarding if a_started_ahead else a_lizarding
-        a_ended_ahead = player_a.x + traj_a.x_off > player_b.x + traj_b.x_off
-        b_ended_ahead = player_b.x + traj_b.x_off > player_a.x + traj_a.x_off
-
-        # both players end up on the same block
-        if a_ended_ahead == b_ended_ahead:
-            a_ended_ahead = not a_started_ahead
-
-        drove_through = a_started_ahead != a_ended_ahead and not behind_lizards
-
-        if started_same_lane and ended_same_lane and drove_through:
-            # whoever is behind cannot pass the player in front
-            # check if player a started ahead
-            if a_started_ahead:
-                traj_b.x_off = player_a.x + traj_a.x_off - 1 - player_b.x
-            else:
-                traj_a.x_off = player_b.x + traj_b.x_off - 1 - player_a.x
-
-        # same destination block
-        # both players stay in the same lane and their x_off gets decremented
-        # by 1
-        x_same = player_a.x + traj_a.x_off == player_b.x + traj_b.x_off
-        y_same = player_a.y + traj_a.y_off == player_b.y + traj_b.y_off
-
-        if x_same and y_same:
-            # -1 x_off penalty
-            traj_a.x_off -= 1
-            traj_b.x_off -= 1
-
-            # back to original lane
-            traj_a.y_off = 0
-            traj_b.y_off = 0
-
     check_collisions(state.player, state.opponent, player_traj, opp_traj,
                      cmd == Cmd.LIZARD, opp_cmd == Cmd.LIZARD)
 
     ## check players' path for penalties and powerups
-
     player_mods = calc_path_mods(state.map, state.player, player_traj,
                                  cmd == Cmd.LIZARD)
     opp_mods = calc_path_mods(state.map, state.opponent, opp_traj,
@@ -407,7 +414,6 @@ def next_state(state, cmd, opp_cmd):
     consumed = {k: consumed[k] + opp_mods.consumed[k] for k in consumed}
 
     ## apply trajectories and mods
-
     player_traj.apply(state.player)
     opp_traj.apply(state.opponent)
 
@@ -415,23 +421,10 @@ def next_state(state, cmd, opp_cmd):
     opp_mods.apply(state.opponent)
 
     ## check if boosting was cancelled
-
-    def track_boosting(player):
-        if player.boosting and player.speed != Speed.BOOST_SPEED.value:
-            player.boosting = False
-            player.boost_counter = 0
-
     track_boosting(state.player)
     track_boosting(state.opponent)
 
     ## keep track of cybertruck collisions
-
-    def check_cybertrucks(state, consumed):
-        ## remove cybertrucks that were crashed into
-        for pos in consumed['cybertrucks']:
-            x, y = pos
-            state.map[x, y].unset_cybertruck()
-
     check_cybertrucks(state, consumed)
 
     return state
