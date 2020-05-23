@@ -1,4 +1,4 @@
-from sloth.state import Player, State, next_state
+from sloth.state import Player, State, valid_actions, next_state
 from sloth.maps import GlobalMap, Map
 from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed
 
@@ -116,46 +116,83 @@ class TestState:
         assert switch.opponent == state.player
         assert switch.map.called == True
 
-class TestNextState:
-    def setup_state(self):
-        player = Player({
-            'id': 1,
-            'position': {
-                'x': 1,
-                'y': 1,
-            },
-            'speed': Speed.SPEED_3.value
-        })
+def setup_state():
+    player = Player({
+        'id': 1,
+        'position': {
+            'x': 1,
+            'y': 1,
+        },
+        'speed': Speed.SPEED_3.value
+    })
 
-        opponent = Player({
-            'id': 2,
-            'position': {
-                'x': 1,
-                'y': 4,
-            },
-            'speed': Speed.SPEED_3.value
-        })
+    opponent = Player({
+        'id': 2,
+        'position': {
+            'x': 1,
+            'y': 4,
+        },
+        'speed': Speed.SPEED_3.value
+    })
 
-        global_map = GlobalMap(1500, 4)
-        raw_map = [[{
-            'position': {
-                'x': x,
-                'y': y,
-            },
-            'surfaceObject': Block.EMPTY.value,
-            'isOccupiedByCyberTruck': False,
-        } for x in range(1, 22)] for y in range(1, 5)]
-        track_map = Map(raw_map, global_map)
+    global_map = GlobalMap(1500, 4)
+    raw_map = [[{
+        'position': {
+            'x': x,
+            'y': y,
+        },
+        'surfaceObject': Block.EMPTY.value,
+        'isOccupiedByCyberTruck': False,
+    } for x in range(1, 22)] for y in range(1, 5)]
+    track_map = Map(raw_map, global_map)
 
-        state = State()
-        state.map = track_map
-        state.player = player
-        state.opponent = opponent
+    state = State()
+    state.map = track_map
+    state.player = player
+    state.opponent = opponent
 
-        return state
+    return state
 
+class TestValidActions:
     def test_nop(self):
-        state = self.setup_state()
+        state = setup_state()
+        assert Cmd.NOP in valid_actions(state)
+
+    def test_accel(self):
+        state = setup_state()
+        assert Cmd.ACCEL in valid_actions(state)
+        state.player.speed = Speed.MAX_SPEED.value
+        assert Cmd.ACCEL not in valid_actions(state)
+
+    def test_left(self):
+        state = setup_state()
+        assert Cmd.LEFT not in valid_actions(state)
+        state.player.y = 2
+        assert Cmd.LEFT in valid_actions(state)
+
+    def test_right(self):
+        state = setup_state()
+        assert Cmd.RIGHT in valid_actions(state)
+        state.player.y = 4
+        assert Cmd.RIGHT not in valid_actions(state)
+
+    def test_boosts(self):
+        state = setup_state()
+        assert Cmd.BOOST not in valid_actions(state)
+        state.player.boosts = 1
+        assert Cmd.BOOST in valid_actions(state)
+        state.player.boosting = True
+        assert Cmd.BOOST not in valid_actions(state)
+
+    def test_lizards(self):
+        state = setup_state()
+        assert Cmd.LIZARD not in valid_actions(state)
+        state.player.lizards = 1
+        assert Cmd.LIZARD in valid_actions(state)
+
+class TestNextState:
+    def test_nop(self):
+        state = setup_state()
         cmd = Cmd.NOP
 
         nstate = next_state(state, cmd, cmd)
@@ -176,7 +213,7 @@ class TestNextState:
             assert cur.speed == prev_speed(prev.speed)
 
     def test_accel(self):
-        state = self.setup_state()
+        state = setup_state()
         cmd = Cmd.ACCEL
 
         nstate = next_state(state, cmd, cmd)
@@ -197,7 +234,7 @@ class TestNextState:
             assert cur.speed == prev.speed
 
     def test_decel(self):
-        state = self.setup_state()
+        state = setup_state()
         cmd = Cmd.DECEL
 
         nstate = next_state(state, cmd, cmd)
@@ -218,7 +255,7 @@ class TestNextState:
             assert cur.speed == prev_speed(prev_speed(prev.speed))
 
     def test_left(self):
-        state = self.setup_state()
+        state = setup_state()
         state.player.y = 2
         cmd = Cmd.LEFT
 
@@ -240,7 +277,7 @@ class TestNextState:
             assert cur.speed == prev_speed(prev.speed)
 
     def test_right(self):
-        state = self.setup_state()
+        state = setup_state()
         state.opponent.y = 3
         cmd = Cmd.RIGHT
 
@@ -262,7 +299,7 @@ class TestNextState:
             assert cur.speed == prev_speed(prev.speed)
 
     def test_boost(self):
-        state = self.setup_state()
+        state = setup_state()
         state.player.boosts = 1
         state.opponent.boosts = 1
         cmd = Cmd.BOOST
@@ -303,7 +340,7 @@ class TestNextState:
             assert cur.boosting == False
 
     def test_lizard(self):
-        state = self.setup_state()
+        state = setup_state()
         state.player.lizards = 1
         state.opponent.lizards = 1
         cmd = Cmd.LIZARD

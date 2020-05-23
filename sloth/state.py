@@ -229,11 +229,7 @@ def calc_trajectory(player, cmd):
         traj.right()
     elif cmd == Cmd.BOOST:
         traj.boost()
-    elif cmd == Cmd.OIL:
-        traj.straight()
     elif cmd == Cmd.LIZARD:
-        traj.straight()
-    elif cmd == Cmd.TWEET:
         traj.straight()
 
     return traj
