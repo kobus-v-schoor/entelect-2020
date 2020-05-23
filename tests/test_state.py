@@ -372,3 +372,145 @@ class TestNextState:
             assert cur.y == prev.y
             assert cur.x - prev.x == prev.speed
             assert cur.speed == prev_speed(prev.speed)
+
+    def test_hit_mud(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.MUD
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev_speed(prev.speed)
+            assert cur.score - prev.score == -3
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_oil_spill(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.OIL_SPILL
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev_speed(prev.speed)
+            assert cur.score - prev.score == -4
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_oil_item(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.OIL_ITEM
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+            assert cur.oils - prev.oils == 1
+            assert cur.score - prev.score == 4
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_boost(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.BOOST
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+            assert cur.boosts - prev.boosts == 1
+            assert cur.score - prev.score == 4
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_wall(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.WALL
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == Speed.SPEED_1.value
+            assert cur.score - prev.score == -5
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_lizard(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.LIZARD
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+            assert cur.lizards - prev.lizards == 1
+            assert cur.score - prev.score == 4
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_tweet(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.TWEET
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+            assert cur.tweets - prev.tweets == 1
+            assert cur.score - prev.score == 4
+            assert nstate.map[prev.x + 1, prev.y] == block
+
+    def test_hit_cybertruck(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.EMPTY
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 2, player.y] = block
+            state.map[player.x + 2, player.y].set_cybertruck()
+            assert player.speed > 1
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x == prev.x + 1
+            assert cur.speed == Speed.SPEED_1.value
+            assert cur.score - prev.score == -7
+            assert nstate.map[prev.x + 2, prev.y] == block
