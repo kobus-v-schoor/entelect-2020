@@ -1,5 +1,6 @@
-from sloth.state import Player, State
-from sloth.maps import Map
+from sloth.state import Player, State, next_state
+from sloth.maps import GlobalMap, Map
+from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed
 
 class TestPlayer:
     def setup_player(self):
@@ -114,3 +115,223 @@ class TestState:
         assert switch.player == state.opponent
         assert switch.opponent == state.player
         assert switch.map.called == True
+
+class TestNextState:
+    def setup_state(self):
+        player = Player({
+            'id': 1,
+            'position': {
+                'x': 1,
+                'y': 1,
+            },
+            'speed': Speed.SPEED_3.value
+        })
+
+        opponent = Player({
+            'id': 2,
+            'position': {
+                'x': 1,
+                'y': 4,
+            },
+            'speed': Speed.SPEED_3.value
+        })
+
+        global_map = GlobalMap(1500, 4)
+        raw_map = [[{
+            'position': {
+                'x': x,
+                'y': y,
+            },
+            'surfaceObject': Block.EMPTY.value,
+            'isOccupiedByCyberTruck': False,
+        } for x in range(1, 22)] for y in range(1, 5)]
+        track_map = Map(raw_map, global_map)
+
+        state = State()
+        state.map = track_map
+        state.player = player
+        state.opponent = opponent
+
+        return state
+
+    def test_nop(self):
+        state = self.setup_state()
+        cmd = Cmd.NOP
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev_speed(prev.speed)
+
+    def test_accel(self):
+        state = self.setup_state()
+        cmd = Cmd.ACCEL
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == next_speed(prev.speed)
+            assert cur.speed == next_speed(prev.speed)
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == next_speed(prev.speed)
+            assert cur.speed == prev.speed
+
+    def test_decel(self):
+        state = self.setup_state()
+        cmd = Cmd.DECEL
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev_speed(prev.speed)
+            assert cur.speed == prev_speed(prev.speed)
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = Block.MUD
+
+        nstate = next_state(state, Cmd.DECEL, Cmd.DECEL)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev_speed(prev.speed)
+            assert cur.speed == prev_speed(prev_speed(prev.speed))
+
+    def test_left(self):
+        state = self.setup_state()
+        state.player.y = 2
+        cmd = Cmd.LEFT
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y - 1
+            assert cur.x - prev.x == prev.speed - 1
+            assert cur.speed == prev.speed
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x, player.y - 1] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y - 1
+            assert cur.x - prev.x == prev.speed - 1
+            assert cur.speed == prev_speed(prev.speed)
+
+    def test_right(self):
+        state = self.setup_state()
+        state.opponent.y = 3
+        cmd = Cmd.RIGHT
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y + 1
+            assert cur.x - prev.x == prev.speed - 1
+            assert cur.speed == prev.speed
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x, player.y + 1] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y + 1
+            assert cur.x - prev.x == prev.speed - 1
+            assert cur.speed == prev_speed(prev.speed)
+
+    def test_boost(self):
+        state = self.setup_state()
+        state.player.boosts = 1
+        state.opponent.boosts = 1
+        cmd = Cmd.BOOST
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == Speed.BOOST_SPEED.value
+            assert cur.speed == Speed.BOOST_SPEED.value
+            assert cur.boosts - prev.boosts == -1
+            assert cur.boosting == True
+            assert cur.boost_counter == 5
+
+        for i in range(5):
+            pstate = nstate
+            nstate = next_state(nstate, Cmd.NOP, cmd.NOP)
+            for prev, cur in zip([pstate.player, pstate.opponent],
+                                 [nstate.player, nstate.opponent]):
+                assert cur.boost_counter - prev.boost_counter == -1
+                if i < 4:
+                    assert cur.boosting == True
+                    assert cur.speed == Speed.BOOST_SPEED.value
+                else:
+                    assert cur.boosting == False
+                    assert cur.speed == Speed.MAX_SPEED.value
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == Speed.BOOST_SPEED.value
+            assert cur.speed == Speed.MAX_SPEED.value
+            assert cur.boosts - prev.boosts == -1
+            assert cur.boosting == False
+
+    def test_lizard(self):
+        state = self.setup_state()
+        state.player.lizards = 1
+        state.opponent.lizards = 1
+        cmd = Cmd.LIZARD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+
+        for player in [state.player, state.opponent]:
+            for x in range(1, player.speed):
+                state.map[player.x + x, player.y] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + player.speed, player.y] = Block.MUD
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev_speed(prev.speed)
