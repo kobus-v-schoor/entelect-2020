@@ -4,61 +4,64 @@ from collections import deque
 from sloth.enums import Cmd, Speed
 from sloth.state import valid_actions, next_state
 
-boost_advantage = Speed.BOOST_SPEED.value - Speed.MAX_SPEED.value
-
-# TODO remove opponent from scoring
 class Weights:
     def __init__(self, raw_weights={}):
         if type(raw_weights) is dict:
             self.pos = raw_weights['pos']
             self.speed = raw_weights['speed']
-            self.boosts = raw_weights['boosts']
-            self.pscore = raw_weights['score']
-            self.opp_pos = raw_weights['opp_pos']
-            self.opp_speed = raw_weights['opp_speed']
-            self.opp_score = raw_weights['opp_score']
-        else:
-            self.pos = raw_weights[0]
-            self.speed = raw_weights[1]
-            self.boosts = raw_weights[2]
-            self.pscore = raw_weights[3]
-            self.opp_pos = raw_weights[4]
-            self.opp_speed = raw_weights[5]
-            self.opp_score = raw_weights[6]
 
-        # boost advantage
-        self.boosts *= boost_advantage
+            self.boosts = raw_weights['boosts']
+            self.oils = raw_weights['oils']
+            self.lizards = raw_weights['lizards']
+            self.tweets = raw_weights['tweets']
+
+            self.player_score = raw_weights['score']
+        else:
+            (self.pos,
+             self.speed,
+
+             self.boosts,
+             self.oils,
+             self.lizards,
+             self.tweets,
+
+             self.player_score) = raw_weights
 
     # takes a from_state and to_state and calculates a numerical score
     def score(self, from_state, to_state):
+        prev = from_state.player
+        to = to_state.player
         return sum([
-            self.pos * (to_state.player.x - from_state.player.x),
-            self.speed * to_state.player.speed,
-            self.boosts * (to_state.player.boosts - from_state.player.boosts),
-            self.pscore * to_state.player.score,
-            self.opp_pos * (to_state.opponent.x - from_state.opponent.x),
-            self.opp_speed * to_state.opponent.speed,
-            self.opp_score * to_state.opponent.score,
+            self.pos * (to.x - prev.x),
+            self.speed * to.speed,
+
+            self.boosts * (to.boosts - prev.boosts),
+            self.oils * (to.oils - prev.oils),
+            self.lizards * (to.lizards - prev.lizards),
+            self.tweets * (to.tweets - prev.tweets),
+
+            self.player_score * (to.score - prev.score),
             ])
 
-    # returns the signs for every weight
+    # returns the amount of weights
     @staticmethod
-    def signs():
-        return [1, 1, 1, 1, -1, -1, -1]
+    def len():
+        return 7
 
     # encodes a from and to state into a numerical array
     @staticmethod
     def encode(from_state, to_state):
         return [
-                to_state.player.x - from_state.player.x,
-                to_state.player.speed,
-                boost_advantage * (to_state.player.boosts -
-                    from_state.player.boosts),
-                to_state.player.score,
-                to_state.opponent.x - from_state.opponent.x,
-                to_state.opponent.speed,
-                to_state.opponent.score,
-                ]
+            to_state.player.x - from_state.player.x,
+            to_state.player.speed,
+
+            (to_state.player.boosts - from_state.player.boosts),
+            (to_state.player.oils - from_state.player.oils),
+            (to_state.player.lizards - from_state.player.lizards),
+            (to_state.player.tweets - from_state.player.tweets),
+
+            to_state.player.score - from_state.player.score,
+        ]
 
     def __repr__(self):
         return str(vars(self))
@@ -126,7 +129,7 @@ def search(state, opp_pred, max_search_depth):
 # does a movement search from the opponent's point of view.
 def opp_search(state):
     state = state.switch()
-    return search(state, lambda _: Cmd.ACCEL, max_search_depth=3)
+    return search(state, lambda _: Cmd.ACCEL, max_search_depth=2)
 
 # scores, ranks and returns the best scoring option. scores are calculated using
 # the weights dict. state is the current state from which to score. if any of

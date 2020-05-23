@@ -5,12 +5,11 @@ from sloth.search import Weights, opp_search, score
 
 class Ensemble:
     def __init__(self, size):
-        signs = Weights.signs()
-        weight_len = len(signs)
+        weight_len = Weights.len()
         weight_options = [0, 0.25, 0.5, 0.75, 1]
 
         self.weights = (np.array([a for a in itertools.product(weight_options,
-            repeat=weight_len)]) * signs).transpose()
+            repeat=weight_len)])).transpose()
 
         self.scores = [0 for _ in range(self.weights.shape[1])]
 

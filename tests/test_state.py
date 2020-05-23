@@ -693,3 +693,12 @@ class TestCalcOppCmd:
         for action in valid_actions(state.switch()):
             nstate = next_state(state, Cmd.NOP, action)
             assert calc_opp_cmd(Cmd.NOP, state, nstate) == action
+
+    def test_invalid_tostate(self):
+        state = setup_state()
+        nstate = setup_state()
+        nstate.opponent.y = 2
+        nstate.opponent.x = 100
+        nstate.opponent.speed = 10
+
+        assert calc_opp_cmd(Cmd.NOP, state, nstate) is None
