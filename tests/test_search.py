@@ -1,4 +1,121 @@
-from sloth.search import Weights
+from sloth.search import search, opp_search, Weights, score
+from sloth.state import Player, State, next_state, valid_actions
+from sloth.maps import GlobalMap, Map
+from sloth.enums import Cmd, Speed, Block
 
-class TestWeights:
+def setup_state():
+    player = Player({
+        'id': 1,
+        'position': {
+            'x': 1,
+            'y': 1,
+        },
+        'speed': Speed.SPEED_3.value
+    })
+
+    opponent = Player({
+        'id': 2,
+        'position': {
+            'x': 1,
+            'y': 4,
+        },
+        'speed': Speed.SPEED_3.value
+    })
+
+    global_map = GlobalMap(1500, 4)
+    raw_map = [[{
+        'position': {
+            'x': x,
+            'y': y,
+        },
+        'surfaceObject': Block.EMPTY.value,
+        'isOccupiedByCyberTruck': False,
+    } for x in range(1, 22)] for y in range(1, 5)]
+    track_map = Map(raw_map, global_map)
+
+    state = State()
+    state.map = track_map
+    state.player = player
+    state.opponent = opponent
+
+    return state
+
+
+class TestSearch:
+    def test_validity(self):
+        state = setup_state()
+        opp_pred = lambda s: Cmd.ACCEL
+
+        options = search(state, opp_pred, 4)
+
+        for actions, final_state in options:
+            cur_state = state
+            for action in actions:
+                cur_state = next_state(cur_state, action, opp_pred(cur_state))
+            assert cur_state == final_state
+
+    def test_opp_search_validity(self):
+        state = setup_state()
+        options = opp_search(state)
+
+        state = state.switch()
+        pred = lambda s: Cmd.ACCEL
+
+        for actions, final_state in options:
+            cur_state = state
+            for action in actions:
+                cur_state = next_state(cur_state, action, pred(cur_state))
+            assert cur_state == final_state
+
+class TestScore:
+    def test_score_normal(self):
+        state = setup_state()
+        options = []
+        for action in valid_actions(state):
+            options.append(([action], setup_state()))
+
+        chosen = options[1]
+        chosen[1].player.speed = 100
+
+        weights = Weights({
+            'pos': 0,
+            'speed': 1,
+            'boosts': 0,
+            'oils': 0,
+            'lizards': 0,
+            'tweets': 0,
+            'score': 0,
+        })
+
+        assert score(options, state, weights) == chosen[0][0]
+
+    def test_score_endgame(self):
+        state = setup_state()
+        options = []
+        for action in valid_actions(state):
+            options.append(([action], setup_state()))
+
+        # decoys
+        options[0][1].player.x = 1550
+        options[1][1].player.x = 1400
+        options[1][1].player.speed = 1000
+
+        chosen = options[2]
+        chosen[1].player.x = 1500
+        chosen[1].player.speed = 100
+
+        weights = Weights({
+            'pos': 1,
+            'speed': 0,
+            'boosts': 0,
+            'oils': 0,
+            'lizards': 0,
+            'tweets': 0,
+            'score': 0,
+        })
+
+        assert score(options, state, weights) == chosen[0][0]
+
+class TestOffensiveSearch:
+    # TODO implement this
     pass
