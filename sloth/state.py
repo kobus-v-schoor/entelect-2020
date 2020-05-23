@@ -200,8 +200,8 @@ def valid_actions(state):
 
     if state.player.speed < Speed.MAX_SPEED.value:
         valid.append(Cmd.ACCEL)
-    # if state.player.speed > Speed.MIN_SPEED.value:
-    #     valid.append(Cmd.DECEL)
+    if state.player.speed > Speed.MIN_SPEED.value:
+        valid.append(Cmd.DECEL)
     if state.player.y > state.map.min_y:
         valid.append(Cmd.LEFT)
     if state.player.y < state.map.max_y:
@@ -443,33 +443,9 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x_off = fx - x
     y_off = fy - y
 
-    # check for operations that almost look like a NOP
-    def check_nop():
-        # TODO check for lizarding
-        return Cmd.NOP
-
-    # fast checks that will catch most of the actions taken by the opponent
-
-    if y_off != 0:
-        return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
-
-    # check if the opponent is not stuck behind us because that can mess with
-    # x_off
-    if fx != to_state.player.x - 1 or fy != to_state.player.y:
-        if x_off == Speed.BOOST_SPEED.value > speed:
-            return Cmd.BOOST
-        if x_off == next_speed(speed) > speed:
-            return Cmd.ACCEL
-        if x_off == prev_speed(speed) < speed:
-            return Cmd.DECEL
-        if x_off == speed:
-            return check_nop()
-
-    # comprehensive search for rarer circumstances (e.g. collisions)
     for opp_cmd in valid_actions(from_state.switch()):
         ns = next_state(from_state, cmd, opp_cmd)
         if (ns.opponent.x,ns.opponent.y,ns.opponent.speed) == (fx,fy,fspeed):
-            if opp_cmd == Cmd.NOP:
-                return check_nop()
             return opp_cmd
+
     return None

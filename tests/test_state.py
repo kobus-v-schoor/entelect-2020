@@ -1,4 +1,4 @@
-from sloth.state import Player, State, valid_actions, next_state
+from sloth.state import Player, State, valid_actions, next_state, calc_opp_cmd
 from sloth.maps import GlobalMap, Map
 from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed
 
@@ -681,3 +681,15 @@ class TestNextState:
         assert nstate.opponent.x == state.opponent.x + state.opponent.speed
         assert nstate.opponent.y == state.opponent.y
         assert nstate.player.x > nstate.opponent.x
+
+class TestCalcOppCmd:
+    def test_valid_cmds(self):
+        state = setup_state()
+        state.opponent.y = 3
+        state.opponent.boosts = 1
+        state.opponent.lizards = 1
+        state.map[2, 3] = Block.MUD
+
+        for action in valid_actions(state.switch()):
+            nstate = next_state(state, Cmd.NOP, action)
+            assert calc_opp_cmd(Cmd.NOP, state, nstate) == action
