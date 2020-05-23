@@ -88,7 +88,9 @@ class Bot:
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
-        print(f'C;{round_num};{cmd.value}')
+        if not type(cmd) is Cmd:
+            cmd = Cmd(cmd)
+        print(f'C;{round_num};{cmd}')
 
     # predicts the opponent's move based on the given state
     # NOTE only predicts movement and not offensive actions
