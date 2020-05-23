@@ -25,4 +25,9 @@ jobs:
       - name: Run unit tests
         run: |
           cd tests
-          pytest --cov=sloth
+          pytest --cov=sloth --cov-report=html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v2
+        with:
+          name: html
