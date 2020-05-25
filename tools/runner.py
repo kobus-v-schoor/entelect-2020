@@ -70,15 +70,6 @@ def play_match():
     w1 = play(min_lane, max_lane)
     w2 = play(max_lane, min_lane)
 
-    prev_matches = sorted(os.listdir(logs_dir))[-2:]
-    if w1[0] == w2[0]:
-        shutil.rmtree(os.path.join(logs_dir, random.choice(prev_matches)))
-        return w1[0]
-    else:
-        w = 'A' if w1[1] + w2[1] > w1[2] + w2[2] else 'B'
-        shutil.rmtree(os.path.join(logs_dir, prev_matches[int(w == w1[0])]))
-        return w
-
 # remove existing logs
 if os.path.isdir(logs_dir):
     shutil.rmtree(logs_dir)

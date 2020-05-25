@@ -17,33 +17,36 @@ bot_zip = '/home/kobus/bot.zip'
 starter_pack = '/home/kobus/starter-pack.zip'
 wd = '/home/kobus/tmp/opt'
 results_dir = 'results'
-weights_file = 'src/weights.json'
+weights_file = 'sloth/weights.json'
+digits = 3
+
+seed_ind = {
+    'pos': 1.0,
+    'speed': 1.0,
+
+    'boosts': 9.6,
+    'oils': 0,
+    'lizards': 0,
+    'tweets': 0,
+
+    'score': 0.3,
+}
 
 def run(cmd, cwd):
-    subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, shell=True, check=True)
+    subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, shell=True,
+                   check=True)
 
 # remove working directory
 if os.path.isdir(wd):
     shutil.rmtree(wd)
 os.makedirs(wd)
 
-def rand_ind():
-    return {
-            'pos': random.random(),
-            'speed': random.random(),
-            'boosts': random.random(),
-            'score': random.random(),
-            'opp_pos': -random.random(),
-            'opp_speed': -random.random(),
-            'opp_score': -random.random(),
-            }
-
 def merge(p1, p2):
     ops = [
-            lambda k: p1[k],
-            lambda k: p2[k],
-            lambda k: (p1[k] + p2[k]) / 2,
-            ]
+        lambda k: p1[k],
+        lambda k: p2[k],
+        lambda k: round((p1[k] + p2[k]) / 2, digits),
+    ]
 
     return {key: random.choice(ops)(key) for key in p1}
 
@@ -51,7 +54,7 @@ def merge(p1, p2):
 def mutate(p):
     m = {k: p[k] for k in p}
     k = random.choice(list(m.keys()))
-    m[k] = random.random() * (1 if p[k] > 0 else -1)
+    m[k] = round(random.normalvariate(m[k], 1), digits)
     return m
 
 def mut_pop_size(gen):
@@ -148,36 +151,45 @@ def play_match(tup):
     # remove tmp dirs
     shutil.rmtree(tmp_dir)
 
-    # calculate winner
+    # return stats
     if w1 is None or w2 is None:
-        return random.choice((p1, p2))
-    elif w1[0] == w2[0]:
-        return w1[0]
+        return (p1, p2,
+                ((random.choice((p1, p2)), random.choice((p1, p2))), 0, 0))
     else:
-        if w1[1] + w2[2] > w1[2] + w2[1]:
-            return p1
-        else:
-            return p2
+        return (p1, p2, ((w1[0], w2[0]), (w1[1] + w2[2]), (w1[2] + w2[1])))
 
 def rank(pop, pbar):
     keyfi = lambda d: tuple(sorted(d.items()))
+    wins = {keyfi(p): 0 for p in pop}
     score = {keyfi(p): 0 for p in pop}
 
-    with Pool(int(round(os.cpu_count() / 1.285))) as pool:
-        for w in pool.imap_unordered(play_match, combinations(pop, 2)):
-            if w is not None:
-                score[keyfi(w)] += 1
+    with Pool(os.cpu_count()) as pool:
+        for stats in pool.imap_unordered(play_match, combinations(pop, 2)):
+            p1 = stats[0]
+            p2 = stats[1]
+            stats = stats[2]
+
+            winners = stats[0]
+            p1_score = stats[1]
+            p2_score = stats[2]
+
+            for w in winners:
+                wins[keyfi(w)] += 1
+            score[keyfi(p1)] += p1_score
+            score[keyfi(p2)] += p2_score
+
             pbar.update()
 
-    return sorted(pop, key=lambda p: score[keyfi(p)], reverse=True)
+    stats = {keyfi(p): (wins[keyfi(p)], score[keyfi(p)]) for p in pop}
+    return sorted(pop, key=lambda p: stats[keyfi(p)], reverse=True)
 
-pop_size = 48
-generations = 40
+pop_size = 12
+generations = 20
 
 print('pop size:', pop_size)
 print('generations:', generations)
 
-population = [rand_ind() for _ in range(pop_size)]
+population = [seed_ind] + [mutate(seed_ind) for _ in range(pop_size - 1)]
 
 print('starting training')
 
@@ -208,7 +220,8 @@ with tqdm(total=runs, smoothing=0) as pbar:
             population}]
 
         # pad population if required
-        population += [rand_ind() for _ in range(pop_size-len(population))]
+        population += [mutate(random.choice(population)) for _ in
+                       range(pop_size-len(population))]
 
 print('winner:', results[0])
 if os.path.isdir(results_dir):

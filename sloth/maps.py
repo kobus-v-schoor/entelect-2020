@@ -88,7 +88,7 @@ class Map:
             y = w['position']['y']
             global_map[x, y] = Block(w['surfaceObject'])
 
-            if w['isOccupiedByCyberTruck']:
+            if w.get('isOccupiedByCyberTruck', False):
                 global_map[x, y].set_cybertruck()
 
             self.min_x = min(x, self.min_x)

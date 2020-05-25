@@ -148,7 +148,7 @@ def score(options, cur_state, weights):
     return actions[0]
 
 def offensive_search(state):
-    if state.player.oils > 3:
-        return Cmd.OIL
+    # if state.player.oils > 3:
+    #     return Cmd.OIL
 
     return Cmd.NOP
