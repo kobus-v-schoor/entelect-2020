@@ -155,7 +155,7 @@ def play_tmp_match_wrapper(tup):
 
 # takes a working directory and a list of tuples, with each tuple being two
 # player configs to play against each other
-def play_round(wd, matches):
+def play_round(wd, matches, pbar):
     results = []
 
     with Pool(os.cpu_count()) as pool:
@@ -163,8 +163,12 @@ def play_round(wd, matches):
         matches = [(wd,) + m for m in matches]
         gen = pool.imap_unordered(play_tmp_match_wrapper, matches)
 
-        return [m for m in tqdm(gen, desc='round', position=1,
-                                total=len(matches))]
+        for match in tqdm(gen, desc='round', position=1, total=len(matches),
+                          dynamic_ncols=True):
+            results.append(match)
+            pbar.update()
+
+    return results
 
 def rank(matches):
     # turns a dict into a (key, value) tuple for hashing

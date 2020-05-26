@@ -1,6 +1,7 @@
 rounds
 bot.log
 bot.zip
+tools.zip
 *.prof
 
 __pycache__

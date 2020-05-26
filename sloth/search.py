@@ -7,15 +7,15 @@ from sloth.state import valid_actions, next_state
 class Weights:
     def __init__(self, raw_weights={}):
         if type(raw_weights) is dict:
-            self.pos = raw_weights['pos']
-            self.speed = raw_weights['speed']
+            self.pos = raw_weights.get('pos', 0)
+            self.speed = raw_weights.get('speed', 0)
 
-            self.boosts = raw_weights['boosts']
-            self.oils = raw_weights['oils']
-            self.lizards = raw_weights['lizards']
-            self.tweets = raw_weights['tweets']
+            self.boosts = raw_weights.get('boosts', 0)
+            self.oils = raw_weights.get('oils', 0)
+            self.lizards = raw_weights.get('lizards', 0)
+            self.tweets = raw_weights.get('tweets', 0)
 
-            self.player_score = raw_weights['score']
+            self.player_score = raw_weights.get('score', 0)
         else:
             (self.pos,
              self.speed,

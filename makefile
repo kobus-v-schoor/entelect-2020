@@ -21,3 +21,6 @@ lint:
 
 test:
 	cd tests; pytest-3 -v
+
+tools_zip:
+	zip -r tools.zip tools/*.py tools/tools/*.py
