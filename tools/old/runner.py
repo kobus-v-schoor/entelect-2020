@@ -7,7 +7,7 @@ import random
 import shutil
 from tqdm import tqdm
 
-starter_pack = '/home/kobus/starter-pack'
+starter_pack = '/home/kobus/starter-pack-1'
 runner_config_file = os.path.join(starter_pack, 'game-runner-config.json')
 game_config_file = os.path.join(starter_pack, 'game-config.json')
 logs_dir = os.path.join(starter_pack, 'match-logs')
