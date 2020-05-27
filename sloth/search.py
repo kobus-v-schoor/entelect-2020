@@ -131,10 +131,10 @@ def opp_search(state):
     state = state.switch()
     return search(state, lambda _: Cmd.ACCEL, max_search_depth=2)
 
-# scores, ranks and returns the best scoring option. scores are calculated using
-# the weights dict. state is the current state from which to score. if any of
-# the actions results in the game being finished only the speeds are taken into
-# account
+# scores, ranks and returns the best scoring option. scores are calculated
+# using the weights dict. state is the current state from which to score. if
+# any of the actions results in the game being finished only the speeds are
+# taken into account
 def score(options, cur_state, weights):
     max_x = cur_state.map.global_map.max_x
 
@@ -147,8 +147,18 @@ def score(options, cur_state, weights):
     actions, _ = max(options, key=key)
     return actions[0]
 
+# tries to find a good offensive move that will negatively impact the opponent
+# checks for various conditions and assigns preferences to the actions and then
+# selects the action with the highest preference
 def offensive_search(state):
-    # if state.player.oils > 3:
-    #     return Cmd.OIL
+    actions = []
 
-    return Cmd.NOP
+    if state.player.oils > 0:
+        # just drop oil if we have to much
+        if state.player.oils > 3:
+            actions.append((10, Cmd.OIL))
+
+    if actions:
+        return min(actions)[1]
+    else:
+        return Cmd.NOP

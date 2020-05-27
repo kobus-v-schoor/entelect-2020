@@ -1,4 +1,4 @@
-from sloth.search import search, opp_search, Weights, score
+from sloth.search import search, opp_search, Weights, score, offensive_search
 from sloth.state import Player, State, next_state, valid_actions
 from sloth.maps import GlobalMap, Map
 from sloth.enums import Cmd, Speed, Block
@@ -117,5 +117,13 @@ class TestScore:
         assert score(options, state, weights) == chosen[0][0]
 
 class TestOffensiveSearch:
-    # TODO implement this
-    pass
+    def test_nop(self):
+        state = setup_state()
+        assert offensive_search(state) == Cmd.NOP
+
+    def test_excessive_oil_drop(self):
+        state = setup_state()
+        state.player.y = 2
+        state.player.oils = 4
+
+        assert offensive_search(state) == Cmd.OIL

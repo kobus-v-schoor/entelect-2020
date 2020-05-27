@@ -163,8 +163,8 @@ def play_round(wd, matches, pbar):
         matches = [(wd,) + m for m in matches]
         gen = pool.imap_unordered(play_tmp_match_wrapper, matches)
 
-        for match in tqdm(gen, desc='round', position=1, total=len(matches),
-                          dynamic_ncols=True):
+        for match in tqdm(gen, desc='generation', position=1,
+                          total=len(matches), smoothing=0, dynamic_ncols=True):
             results.append(match)
             pbar.update()
 
