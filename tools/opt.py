@@ -1,6 +1,7 @@
 import os
 import shutil
 import random
+import json
 from itertools import product, combinations
 
 from tqdm import tqdm
@@ -14,10 +15,10 @@ if os.path.isdir(wd):
 
 results_dir = 'results'
 
-population_size = 70
-generations = 20
-mutation_decay = 0.25
-champion_count = 3
+population_size = 30
+generations = 40
+mutation_decay = 0.4
+champion_count = 7
 digits = 3
 
 seed = {
@@ -43,15 +44,16 @@ def merge(p1, p2):
     return {key: random.choice(ops)(key) for key in p1}
 
 # mutate one of the keys
-def mutate(p):
+def mutate(p, gen=0):
     m = {k: p[k] for k in p}
     k = random.choice(list(m.keys()))
-    m[k] = round(random.normalvariate(m[k], 1), digits)
+    s = 5 * (2 ** (-1.7 * (gen / generations)))
+    m[k] = round(random.normalvariate(m[k], s), digits)
     return m
 
 # amount of individuals to mutate
 def mutation_population_size(gen):
-    return int(mutation_decay * 2 ** (-gen / generations) * population_size)
+    return int(mutation_decay * 2 ** (-3 * gen / generations) * population_size)
 
 population = [seed] + [mutate(seed) for _ in range(population_size - 1)]
 
@@ -74,7 +76,7 @@ with tqdm(total=total, smoothing=0, desc='overall', dynamic_ncols=True) as pbar:
 
         # perform mutation
         mut_count = mutation_population_size(gen)
-        muts = [mutate(m) for m in random.sample(selection, k=mut_count)]
+        muts = [mutate(m, gen) for m in random.sample(selection, k=mut_count)]
 
         # generate offspring
         off_count = population_size - len(selection) - len(muts)
