@@ -6,6 +6,7 @@ import string
 import shutil
 from multiprocessing import Pool
 from tqdm import tqdm
+from tools.stats import matches_stats
 
 starter_pack_zip = os.path.realpath('starter-pack.zip')
 bot_zip = os.path.realpath('bot.zip')
@@ -195,3 +196,42 @@ def rank(matches):
               score[k]['score']) for k in score]
 
     return sorted(score, key=lambda p: (p[1], p[2]), reverse=True)
+
+def play_tmp_ref_match(wd, a_config, ref_bot):
+    # setup tmp wd
+    tmp_dir, starter_dir, player_a, player_b = setup_tmp_wd(wd)
+
+    # set player weights
+    set_player_config(player_a, a_config)
+
+    # play_match
+    play_match(starter_dir, player_a, ref_bot)
+
+    match_logs = os.path.join(starter_dir, 'match-logs')
+
+    return tmp_dir, match_logs
+
+def play_tmp_ref_match_wrapper(tup):
+    return play_tmp_ref_match(*tup)
+
+def play_ref_matches(count, wd, a_config, ref_bot):
+    logs_dir = os.path.join(wd, 'logs')
+    os.makedirs(logs_dir)
+
+    with Pool(os.cpu_count()) as pool:
+        matches = [(wd, a_config, ref_bot)] * count
+        gen = pool.imap_unordered(play_tmp_ref_match_wrapper, matches)
+
+        count = 0
+        for tmp_dir, match_logs in tqdm(gen, desc='round', total=len(matches),
+                          dynamic_ncols=True):
+            for match in os.listdir(match_logs):
+                os.rename(os.path.join(match_logs, match),
+                          os.path.join(logs_dir, str(count)))
+                count += 1
+            shutil.rmtree(tmp_dir)
+
+    stats = matches_stats(logs_dir)
+    shutil.rmtree(logs_dir)
+
+    return stats
