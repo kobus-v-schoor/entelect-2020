@@ -155,9 +155,11 @@ def matches_stats(path, keep_prefix=False):
     for player in stats:
         for key in stats[player]:
             if key == 'won':
-                stats[player]['won'] = (sum(stats[player]['won']) /
-                                        stats[player]['matches'])
+                stats[player]['won'] = sum(stats[player]['won'])
             elif key != 'matches':
                 avg_min_max(player, key)
+
+        stats[player]['win rate'] = (stats[player]['won'] /
+                                     stats[player]['matches'])
 
     return stats

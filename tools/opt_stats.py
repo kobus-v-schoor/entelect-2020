@@ -67,4 +67,4 @@ movement_config = optimize(seed, movement,
                            lambda s: 500 - s['sonic-sloth']['rounds']['mean'],
                            ref_bot)
 
-print(json.dumps(movement_config))
+print(json.dumps(movement_config, indent=2))

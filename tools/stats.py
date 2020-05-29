@@ -19,7 +19,8 @@ for player in sorted(stats):
     headers = ['min', 'max', 'median', 'mean']
     rows = [
         ['matches', stats[player].pop('matches')],
-        ['win rate', round(stats[player].pop('won') * 100, 2)]
+        ['won', stats[player].pop('won')],
+        ['win rate', round(stats[player].pop('win rate') * 100, 2)]
     ]
 
     for stat in stats[player]:
@@ -29,6 +30,6 @@ for player in sorted(stats):
         else:
             rows.append([stat, None])
 
-    print(tabulate(rows, headers=(['stat'] + headers), numalign='right',
+    print(tabulate(rows, headers=(['statistic'] + headers), numalign='right',
                    tablefmt='rst'))
     print()

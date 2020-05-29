@@ -7,7 +7,7 @@ zip:
 
 clean:
 	rm -fvr sloth/bot.log tests/bot.log sloth/rounds
-	rm -fvr bot.zip
+	rm -fvr bot.zip tools.zip
 	rm -fvr sloth/__pycache__ profile.prof
 
 run:
@@ -24,3 +24,7 @@ test:
 
 tools_zip:
 	zip -r tools.zip tools/*.py tools/tools/*.py
+
+sec: clean zip tools_zip
+	scp bot.zip tools.zip sec:
+	ssh sec "rm -r tools; unzip tools.zip"

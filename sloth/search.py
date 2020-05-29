@@ -153,10 +153,11 @@ def score(options, cur_state, weights):
 def offensive_search(state):
     actions = []
 
-    if state.player.oils > 0:
-        # just drop oil if we have to much
-        if state.player.oils > 3:
-            actions.append((10, Cmd.OIL))
+    # FIXME re-enable oil drops when ready for offensive optimization
+    # if state.player.oils > 0:
+    #     # just drop oil if we have to much
+    #     if state.player.oils > 3:
+    #         actions.append((10, Cmd.OIL))
 
     if actions:
         return min(actions)[1]
