@@ -200,8 +200,9 @@ def valid_actions(state):
 
     if state.player.speed < Speed.MAX_SPEED.value:
         valid.append(Cmd.ACCEL)
-    if state.player.speed > Speed.MIN_SPEED.value:
-        valid.append(Cmd.DECEL)
+    # FIXME re-enable decelerate once running on new engine
+    # if state.player.speed > Speed.MIN_SPEED.value:
+    #     valid.append(Cmd.DECEL)
     if state.player.y > state.map.min_y:
         valid.append(Cmd.LEFT)
     if state.player.y < state.map.max_y:

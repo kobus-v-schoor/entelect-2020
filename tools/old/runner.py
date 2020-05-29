@@ -13,7 +13,7 @@ game_config_file = os.path.join(starter_pack, 'game-config.json')
 logs_dir = os.path.join(starter_pack, 'match-logs')
 
 player_a = '/home/kobus/repo'
-player_b = '/home/kobus/opp'
+player_b = '/home/kobus/opp-new'
 # player_b = 'reference-bot/java/'
 # player_b = '/home/kobus/opp-very-old'
 min_lane = 1

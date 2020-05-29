@@ -16,7 +16,7 @@ print()
 for player in sorted(stats):
     print(player)
 
-    headers = ['min', 'max', 'avg']
+    headers = ['min', 'max', 'median', 'mean']
     rows = [
         ['matches', stats[player].pop('matches')],
         ['win rate', round(stats[player].pop('won') * 100, 2)]

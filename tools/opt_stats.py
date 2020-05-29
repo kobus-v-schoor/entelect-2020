@@ -12,8 +12,8 @@ with open('seed.json', 'r') as f:
 
 print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
-movement = ['pos', 'speed', 'boosts', 'lizards', 'score']
-offensive = ['oils', 'tweets']
+movement = ['pos', 'speed', 'boosts', 'score']
+offensive = ['oils']
 match_count = 20
 samples = 30
 digits = 3
@@ -64,7 +64,7 @@ def optimize(starting_vals, parameters, scoring, opponent):
     return config
 
 movement_config = optimize(seed, movement,
-                           lambda s: 500 - s['sonic-sloth']['rounds']['avg'],
+                           lambda s: 500 - s['sonic-sloth']['rounds']['mean'],
                            ref_bot)
 
 print(json.dumps(movement_config))

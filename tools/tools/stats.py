@@ -1,5 +1,6 @@
 import os
 import json
+import statistics
 from tqdm import tqdm
 
 def match_stats(path):
@@ -145,7 +146,8 @@ def matches_stats(path, keep_prefix=False):
             new = {}
             new['min'] = float(min(stats[player][key]))
             new['max'] = float(max(stats[player][key]))
-            new['avg'] = sum(stats[player][key]) / len(stats[player][key])
+            new['median'] = statistics.median(stats[player][key])
+            new['mean'] = statistics.mean(stats[player][key])
             stats[player][key] = new
         else:
             stats[player][key] = None
