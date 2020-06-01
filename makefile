@@ -32,3 +32,8 @@ sec: clean zip tools_zip
 gcp: clean zip tools_zip
 	scp bot.zip tools.zip optimize:
 	ssh optimize "rm -r tools; unzip tools.zip"
+
+opp: clean zip
+	rm -rf ~/opp/opp
+	mkdir -p ~/opp/opp
+	unzip bot.zip -d ~/opp/opp

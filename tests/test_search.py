@@ -127,3 +127,13 @@ class TestOffensiveSearch:
         state.player.oils = 4
 
         assert offensive_search(state) == Cmd.OIL
+
+    def test_right_behind_oil_drop(self):
+        state = setup_state()
+        state.player.x = 10
+        state.player.y = 2
+        state.player.oils = 1
+        state.opponent.x = state.player.x - 1
+        state.opponent.y = state.player.y
+
+        assert offensive_search(state) == Cmd.OIL

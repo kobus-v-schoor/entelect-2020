@@ -150,6 +150,7 @@ def score(options, cur_state, weights):
 # tries to find a good offensive move that will negatively impact the opponent
 # checks for various conditions and assigns preferences to the actions and then
 # selects the action with the highest preference
+# preference ranges from 0-10, with 0 being highest pref
 def offensive_search(state):
     actions = []
 
@@ -157,6 +158,11 @@ def offensive_search(state):
         # just drop oil if we have to much
         if state.player.oils > 3:
             actions.append((10, Cmd.OIL))
+
+        # drop oil if opponent is right behind us
+        if ((state.opponent.x, state.opponent.y) ==
+                (state.player.x - 1, state.player.y)):
+            actions.append((0, Cmd.OIL))
 
     if actions:
         return min(actions)[1]
