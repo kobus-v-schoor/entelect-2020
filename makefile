@@ -28,3 +28,7 @@ tools_zip:
 sec: clean zip tools_zip
 	scp bot.zip tools.zip sec:
 	ssh sec "rm -r tools; unzip tools.zip"
+
+gcp: clean zip tools_zip
+	scp bot.zip tools.zip optimize:
+	ssh optimize "rm -r tools; unzip tools.zip"

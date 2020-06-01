@@ -5,30 +5,41 @@ import os
 import shutil
 import random
 
-from tools.match import play_ref_matches
+from tools.match import play_stats
 
-with open('seed.json', 'r') as f:
-    seed = json.load(f)
+seed = {
+    'pos': 1.0,
+    'speed': 1.0,
+
+    'boosts': 9.6,
+    'oils': 0,
+    'lizards': 0,
+    'tweets': 0,
+
+    'score': 0.3
+}
 
 print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
-movement = ['pos', 'speed', 'boosts', 'score']
+# pos is kept constant as point of reference
+movement = ['speed', 'boosts', 'score']
 offensive = ['oils']
+parameters = movement + offensive
+
 match_count = 20
 samples = 30
-digits = 3
+digits = 4
 
 print(f'movement parameters: {movement}')
 print(f'offensive parameters: {offensive}\n')
 
-ref_bot = './reference-bot/java/'
 tmp_wd = os.path.realpath('tmpfs/opt-stats')
 
 if os.path.isdir(tmp_wd):
     shutil.rmtree(tmp_wd)
 os.makedirs(tmp_wd)
 
-def optimize(starting_vals, parameters, scoring, opponent):
+def optimize(starting_vals, parameters, opponent):
     config = {**starting_vals}
 
     for parameter in parameters:
@@ -36,25 +47,24 @@ def optimize(starting_vals, parameters, scoring, opponent):
 
         scores = {}
 
+        value = starting_vals[parameter]
+
         for sample in range(samples):
-            if not scores:
-                value = starting_vals[parameter]
-            else:
-                mean = sum([k * scores[k] for k in scores])
-                mean /= sum([abs(scores[k]) for k in scores])
-                print(f'mean updated to {mean}')
-
-                value = round(random.gauss(mean, (samples - sample) / samples),
-                              digits)
-
+            print(f'sample {sample+1}/{samples}')
             print(f'testing {parameter} = {value}')
 
             config[parameter] = value
-            stats = play_ref_matches(match_count, tmp_wd, config, opponent)
-            score = scoring(stats)
+            stats = play_stats(match_count, tmp_wd, config, opponent)
+            # score = stats['A - sonic-sloth']['eff_speed']['mean']
+            score = stats['A - sonic-sloth']['win rate']
+            scores[value] = score
             print(f'score for {parameter} = {value} is {score}')
 
-            scores[value] = score
+            mu = max(scores, key=lambda v: scores[v])
+            sigma = 2 ** (-3 * sample / samples)
+            print(f'mu: {mu} sigma: {round(sigma, 4)}')
+            value = round(random.gauss(mu, sigma), digits)
+            print(f'next value: {value}')
 
         value = max(scores, key=lambda v: scores[v])
         print(f'selected {parameter} = {value}')
@@ -63,8 +73,4 @@ def optimize(starting_vals, parameters, scoring, opponent):
 
     return config
 
-movement_config = optimize(seed, movement,
-                           lambda s: 500 - s['sonic-sloth']['rounds']['mean'],
-                           ref_bot)
-
-print(json.dumps(movement_config, indent=2))
+config = optimize(seed, parameters, seed)

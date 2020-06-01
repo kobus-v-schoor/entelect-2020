@@ -10,6 +10,7 @@ from tools.stats import matches_stats
 
 starter_pack_zip = os.path.realpath('starter-pack.zip')
 bot_zip = os.path.realpath('bot.zip')
+cpu_div = 1.3
 
 def run(cmd, wd):
     subprocess.run(cmd, cwd=wd, capture_output=True, shell=True, check=True)
@@ -48,6 +49,9 @@ def setup_wd(wd):
     starter_dir = os.path.join(wd, 'starter-pack')
     os.makedirs(starter_dir)
     run(f'unzip {starter_pack_zip}', wd)
+
+    # increase max timeout for multi-threaded operation
+    set_game_runner_config(starter_dir, {'max-runtime-ms': 10000})
 
     player_a = os.path.join(wd, 'player_a')
     os.makedirs(player_a)
@@ -159,7 +163,7 @@ def play_tmp_match_wrapper(tup):
 def play_round(wd, matches, pbar):
     results = []
 
-    with Pool(os.cpu_count()) as pool:
+    with Pool(int(os.cpu_count() / cpu_div)) as pool:
 
         matches = [(wd,) + m for m in matches]
         gen = pool.imap_unordered(play_tmp_match_wrapper, matches)
@@ -197,41 +201,44 @@ def rank(matches):
 
     return sorted(score, key=lambda p: (p[1], p[2]), reverse=True)
 
-def play_tmp_ref_match(wd, a_config, ref_bot):
+def play_stats_match(wd, a_config, b_config):
     # setup tmp wd
     tmp_dir, starter_dir, player_a, player_b = setup_tmp_wd(wd)
 
     # set player weights
     set_player_config(player_a, a_config)
+    set_player_config(player_b, b_config)
 
     # play_match
-    play_match(starter_dir, player_a, ref_bot)
+    play_match(starter_dir, player_a, player_b)
 
     match_logs = os.path.join(starter_dir, 'match-logs')
 
     return tmp_dir, match_logs
 
-def play_tmp_ref_match_wrapper(tup):
-    return play_tmp_ref_match(*tup)
+def play_stats_match_wrapper(tup):
+    return play_stats_match(*tup)
 
-def play_ref_matches(count, wd, a_config, ref_bot):
+def play_stats(count, wd, a_config, b_config):
     logs_dir = os.path.join(wd, 'logs')
     os.makedirs(logs_dir)
 
-    with Pool(os.cpu_count()) as pool:
-        matches = [(wd, a_config, ref_bot)] * count
-        gen = pool.imap_unordered(play_tmp_ref_match_wrapper, matches)
+    with Pool(int(os.cpu_count() / cpu_div)) as pool:
+        matches = [(wd, a_config, b_config)] * count
+        gen = pool.imap_unordered(play_stats_match_wrapper, matches)
 
         count = 0
-        for tmp_dir, match_logs in tqdm(gen, desc='round', total=len(matches),
-                          dynamic_ncols=True):
+        for tmp_dir, match_logs in tqdm(gen, desc='stats round',
+                                        total=len(matches),
+                                        dynamic_ncols=True):
             for match in os.listdir(match_logs):
                 os.rename(os.path.join(match_logs, match),
                           os.path.join(logs_dir, str(count)))
                 count += 1
+
             shutil.rmtree(tmp_dir)
 
-    stats = matches_stats(logs_dir)
+    stats = matches_stats(logs_dir, keep_prefix=True)
     shutil.rmtree(logs_dir)
 
     return stats
