@@ -5,10 +5,10 @@ from tqdm import tqdm
 
 from tools.match import play_match
 
-starter_dir = '/home/kobus/starter-pack-1'
+starter_dir = '/home/kobus/starter-pack'
 player_a = '/home/kobus/repo'
 # player_a = '/home/kobus/opp/opp-new'
-player_b = '/home/kobus/opp/opp-new'
+player_b = '/home/kobus/opp/opp'
 # player_b = './reference-bot/java/'
 matches = 20
 

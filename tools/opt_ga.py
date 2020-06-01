@@ -26,8 +26,8 @@ seed = {
     "speed": 1.0,
 
     "boosts": 9.6,
-    # "oils": 0,
-    # "lizards": 0,
+    "oils": 0,
+    "lizards": 4,
     # "tweets": 0,
 
     "score": 0.3
