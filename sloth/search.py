@@ -159,10 +159,36 @@ def offensive_search(state):
         if state.player.oils > 3:
             actions.append((10, Cmd.OIL))
 
-        # drop oil if opponent is right behind us
-        if ((state.opponent.x, state.opponent.y) ==
-                (state.player.x - 1, state.player.y)):
-            actions.append((0, Cmd.OIL))
+        # drop oil if opponent is close behind us
+        if state.opponent.y == state.player.y:
+            if state.opponent.x == state.player.x - 1:
+                actions.append((0, Cmd.OIL))
+            elif 1 <= state.player.x - state.opponent.x <= 15:
+                actions.append((3, Cmd.OIL))
+
+        # drop oil to block passages
+        if state.opponent.x < state.player.x:
+            min_x = state.map.global_map.min_x
+            max_x = state.map.global_map.max_x
+
+            blocked_left = state.player.y == state.map.min_y
+            if not blocked_left:
+                blocks = (state.map[x, state.player.y - 1].bad_block()
+                          for x in range(max(min_x, state.player.x - 5),
+                                         min(state.player.x + 5, max_x)))
+                blocked_left = any(blocks)
+
+            blocked_right = state.player.y == state.map.max_y
+            if not blocked_right:
+                blocks = (state.map[x, state.player.y + 1].bad_block()
+                          for x in range(max(min_x, state.player.x - 5),
+                                         min(state.player.x + 5, max_x)))
+                blocked_right = any(blocks)
+
+            if blocked_left and blocked_right:
+                actions.append((6, Cmd.OIL))
+            elif blocked_left or blocked_right:
+                actions.append((7, Cmd.OIL))
 
     if actions:
         return min(actions)[1]

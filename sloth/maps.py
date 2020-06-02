@@ -12,6 +12,10 @@ class BlockOverlay:
             self.block = Block(block)
         self.overlay = None
 
+    def bad_block(self):
+        return self.get_block() in [Block.MUD, Block.WALL, Block.OIL_SPILL,
+                                    Block.CYBERTRUCK]
+
     def set_cybertruck(self):
         self.overlay = Block.CYBERTRUCK
 

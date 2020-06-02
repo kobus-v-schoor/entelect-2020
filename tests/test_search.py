@@ -137,3 +137,39 @@ class TestOffensiveSearch:
         state.opponent.y = state.player.y
 
         assert offensive_search(state) == Cmd.OIL
+
+    def test_close_behind_oil_drop(self):
+        state = setup_state()
+        state.player.x = 100
+        state.player.y = 2
+        state.player.oils = 1
+        state.opponent.x = state.player.x - 10
+        state.opponent.y = state.player.y
+
+        assert offensive_search(state) == Cmd.OIL
+
+    def test_passage_block(self):
+        state = setup_state()
+
+        state.player.oils = 1
+        x = 100
+        y = 2
+
+        def set_xy(_x, _y):
+            x = _x
+            y = _y
+            state.player.x = x
+            state.player.y = y
+
+        assert offensive_search(state) == Cmd.NOP
+
+        set_xy(x, 1)
+        assert offensive_search(state) == Cmd.OIL
+
+        set_xy(x, 4)
+        assert offensive_search(state) == Cmd.OIL
+
+        set_xy(x, 2)
+        state.map[x, y - 1] = Block.MUD
+        state.map[x, y + 1] = Block.MUD
+        assert offensive_search(state) == Cmd.OIL
