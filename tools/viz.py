@@ -17,6 +17,7 @@ fps = 15
 rps = 1 # rounds per second
 delay = 1 # insert delay after every round
 lift_fow = True # lifts the fog of war so that x_ahead blocks are always shown
+manual = True # manually control round transitions
 
 class Block(enum.Enum):
     EMPTY = 0
@@ -225,7 +226,12 @@ def clear_lines(n):
 def print_buffer(framebuffer):
     print('\n'.join(framebuffer))
 
-for cur_round, next_round in zip(rounds, rounds[1:] + [None]):
+round_num = 0
+
+while True:
+    cur_round = rounds[round_num]
+    next_round = (rounds[1:] + [None])[round_num]
+
     states = {}
     for player in players:
         states[player] = read_state(cur_round, next_round, player)
@@ -242,6 +248,34 @@ for cur_round, next_round in zip(rounds, rounds[1:] + [None]):
 
         clear_lines(prev_lines + 1)
         print_buffer(framebuffer)
-        if delay and frame == 0:
-            time.sleep(delay)
+
+        if frame == 0:
+            if manual:
+                r = input()
+                reset = False
+                r = r if r else ']'
+                if r == ']':
+                    round_num += 1
+                elif r == '[':
+                    round_num -= 1
+                    reset = True
+                else:
+                    try:
+                        round_num = int(r) - 1
+                        reset = True
+                    except:
+                        print(f'unable to understand "{r}", aborting')
+                        sys.exit(1)
+
+                clear_lines(2)
+                if reset:
+                    break
+            else:
+                if delay:
+                    time.sleep(delay)
+                round_num += 1
+
         time.sleep(1 / fps)
+
+    if round_num == len(rounds):
+        break
