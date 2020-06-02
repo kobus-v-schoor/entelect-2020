@@ -170,19 +170,20 @@ def offensive_search(state):
         if state.opponent.x < state.player.x:
             min_x = state.map.global_map.min_x
             max_x = state.map.global_map.max_x
+            off = 10
 
             blocked_left = state.player.y == state.map.min_y
             if not blocked_left:
                 blocks = (state.map[x, state.player.y - 1].bad_block()
-                          for x in range(max(min_x, state.player.x - 5),
-                                         min(state.player.x + 5, max_x)))
+                          for x in range(max(min_x, state.player.x - off),
+                                         min(state.player.x + off, max_x)))
                 blocked_left = any(blocks)
 
             blocked_right = state.player.y == state.map.max_y
             if not blocked_right:
                 blocks = (state.map[x, state.player.y + 1].bad_block()
-                          for x in range(max(min_x, state.player.x - 5),
-                                         min(state.player.x + 5, max_x)))
+                          for x in range(max(min_x, state.player.x - off),
+                                         min(state.player.x + off, max_x)))
                 blocked_right = any(blocks)
 
             if blocked_left and blocked_right:
