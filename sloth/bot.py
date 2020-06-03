@@ -1,6 +1,7 @@
 import json
 import os
 from collections import deque
+from functools import lru_cache
 
 from sloth.enums import Cmd
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
@@ -94,6 +95,7 @@ class Bot:
 
     # predicts the opponent's move based on the given state
     # NOTE only predicts movement and not offensive actions
+    @lru_cache(maxsize=None)
     def pred_opp(self, state):
         # if opponent is outside our view just assume they are accelerating
         # since we won't be able to predict anything better than that
@@ -129,6 +131,10 @@ class Bot:
 
             if round_num < 0:
                 break
+
+            # clear caches
+            self.pred_opp.cache_clear()
+            next_state.cache_clear()
 
             # read the state file
             raw_state = self.read_state(round_num)

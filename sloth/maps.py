@@ -28,6 +28,9 @@ class BlockOverlay:
             return self.overlay
         return self.block
 
+    def __hash__(self):
+        return hash(self.get_block())
+
     def __eq__(self, other):
         if type(other) is Block:
             return self.get_block() == other
@@ -141,6 +144,13 @@ class Map:
         cm.view = copy.deepcopy(self.view)
 
         return cm
+
+    def __hash__(self):
+        return hash(tuple([(*pos, self.view[pos]) for pos in
+                           sorted(self.view)]))
+
+    def __eq__(self, other):
+        return self.view == other.view
 
     def __repr__(self):
         return str(self)

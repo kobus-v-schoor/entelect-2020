@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 
 from sloth.enums import Speed, next_speed, prev_speed, Cmd, Block
 
@@ -73,10 +74,11 @@ class State:
         return str(vars(self))
 
     def __hash__(self):
-        return hash((self.player, self.opponent))
+        return hash((self.player, self.opponent, self.map))
 
     def __eq__(self, other):
-        return (self.player, self.opponent) == (other.player, other.opponent)
+        return ((self.player, self.opponent, self.map) ==
+                (other.player, other.opponent, other.map))
 
 class Trajectory:
     def __init__(self):
@@ -371,6 +373,7 @@ def check_cybertrucks(state, consumed):
 # calculates the next state given the player and opponent's cmd
 # NOTE it is assumed that both cmds are valid movement cmds
 # NOTE offensive cmds are not supported
+@lru_cache(maxsize=None)
 def next_state(state, cmd, opp_cmd):
     state = state.copy()
 

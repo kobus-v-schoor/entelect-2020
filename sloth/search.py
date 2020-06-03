@@ -79,35 +79,16 @@ def search(state, opp_pred, max_search_depth):
     # holds the bfs queue
     queue = deque([[]])
 
-    # holds the state transition cache
-    cache = {}
-
-    # holds the prediction cache for the opponent prediction
-    pred_cache = {}
-
     while queue:
         actions = queue.popleft()
         cur_state = state.copy()
 
         for cmd in actions:
-            # check if cmd + cur state has been cached
-            pk = (cur_state, cmd)
-            if pk in cache:
-                cur_state = cache[pk]
-                continue
-
-            # check if current state is in prediction cache
-            if cur_state in pred_cache:
-                opp_cmd = pred_cache[cur_state]
-            else:
-                opp_cmd = opp_pred(cur_state)
-                pred_cache[cur_state] = opp_cmd
+            # get opp cmd
+            opp_cmd = opp_pred(cur_state)
 
             # calculate next state
             cur_state = next_state(cur_state, cmd, opp_cmd)
-
-            # save in cache
-            cache[pk] = cur_state
 
         # save final state
         options.append((actions, cur_state))
