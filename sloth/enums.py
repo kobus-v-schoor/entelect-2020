@@ -51,13 +51,12 @@ class Cmd:
         DECEL = 'DECELERATE'
         LEFT = 'TURN_LEFT'
         RIGHT = 'TURN_RIGHT'
-
         BOOST = 'USE_BOOST'
         OIL = 'USE_OIL'
         LIZARD = 'USE_LIZARD'
         TWEET = 'USE_TWEET'
 
-    def __init__(self, cmd):
+    def __init__(self, cmd, pos=None):
         if type(cmd) is Cmd.CmdEnum:
             self.cmd = cmd
         elif type(val) is Cmd:
@@ -65,21 +64,29 @@ class Cmd:
         else:
             self.cmd = CmdEnum(cmd)
 
+        self.pos = pos
+
     def __eq__(self, other):
         if type(other) is Cmd.CmdEnum:
             return self.cmd == other
         elif type(other) is Cmd:
-            return self.cmd == other.cmd
+            return (self.cmd, self.pos) == (other.cmd, other.pos)
         raise ValueError(f'unsupported type {type(other)} for operand ==')
 
     def __hash__(self):
-        return hash(self.cmd)
+        return hash((self.cmd, self.pos))
 
     def __repr__(self):
-        return repr(self.cmd)
+        if self.pos is None:
+            return repr(self.cmd)
+        else:
+            return repr((self.cmd, self.pos))
 
     def __str__(self):
-        return self.cmd.value
+        if self.pos is None:
+            return str(self.cmd.value)
+        else:
+            return f'{self.cmd.value} {self.pos[1]} {self.pos[0]}'
 
 for cmd in Cmd.CmdEnum:
     setattr(Cmd, cmd.name, cmd)
