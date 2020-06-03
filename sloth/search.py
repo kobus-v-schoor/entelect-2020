@@ -132,7 +132,7 @@ def score(options, cur_state, weights):
 # checks for various conditions and assigns preferences to the actions and then
 # selects the action with the highest preference
 # preference ranges from 0-10, with 0 being highest pref
-def offensive_search(state):
+def offensive_search(state, pred_opp=lambda s: Cmd.ACCEL):
     actions = []
 
     if state.player.oils > 0:

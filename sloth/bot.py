@@ -117,7 +117,7 @@ class Bot:
                     self.state, self.weights)
 
         if cmd == Cmd.NOP:
-            cmd = offensive_search(self.state)
+            cmd = offensive_search(self.state, self.pred_opp)
 
         # TODO update the global map if commands result in map changes for
         # later use by calc_opp_cmd
