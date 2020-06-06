@@ -12,8 +12,8 @@ seed = {
     'speed': 1.0,
 
     'boosts': 9.6,
-    'oils': 0,
-    'lizards': 4,
+    'oils': 0.4871,
+    'lizards': 2.3,
     'tweets': 0,
 
     'score': 0.3
@@ -22,10 +22,8 @@ seed = {
 print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
 # pos is kept constant as point of reference
-movement = ['speed', 'boosts', 'score']
-offensive = ['oils']
-parameters = movement + offensive
-parameters = ['lizards']
+movement = ['speed', 'boosts', 'score', 'lizards']
+offensive = ['oils'] # , 'tweets']
 
 match_count = 20
 samples = 30
@@ -40,7 +38,7 @@ if os.path.isdir(tmp_wd):
     shutil.rmtree(tmp_wd)
 os.makedirs(tmp_wd)
 
-def optimize(starting_vals, parameters, opponent):
+def optimize(starting_vals, parameters, opponent, neg_opponent):
     config = {**starting_vals}
 
     for parameter in parameters:
@@ -57,7 +55,8 @@ def optimize(starting_vals, parameters, opponent):
             config[parameter] = value
             stats = play_stats(match_count, tmp_wd, config, opponent)
             score = stats['A - sonic-sloth']['eff_speed']['mean']
-            # score = stats['A - sonic-sloth']['win rate']
+            if neg_opponent:
+                score -= stats['B - sonic-sloth']['eff_speed']['mean']
             scores[value] = score
             print(f'score for {parameter} = {value} is {score}')
 
@@ -74,4 +73,5 @@ def optimize(starting_vals, parameters, opponent):
 
     return config
 
-config = optimize(seed, parameters, seed)
+mov_config = optimize(seed, movement, seed, neg_opponent=False)
+off_config = optimize(mov_config, offensive, seed, neg_opponent=True)
