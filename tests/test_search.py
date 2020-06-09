@@ -87,7 +87,7 @@ class TestScore:
             'score': 0,
         })
 
-        assert score(options, state, weights) == chosen[0][0]
+        assert score(options, state, weights) == chosen[0]
 
     def test_score_endgame(self):
         state = setup_state()
@@ -114,7 +114,7 @@ class TestScore:
             'score': 0,
         })
 
-        assert score(options, state, weights) == chosen[0][0]
+        assert score(options, state, weights) == chosen[0]
 
 class TestOffensiveSearch:
     def test_nop(self):

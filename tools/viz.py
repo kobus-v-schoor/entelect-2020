@@ -15,7 +15,7 @@ x_ahead = 20
 
 fps = 15
 rps = 1 # rounds per second
-delay = 1 # insert delay after every round
+delay = 0 # insert delay after every round
 lift_fow = True # lifts the fog of war so that x_ahead blocks are always shown
 manual = True # manually control round transitions
 

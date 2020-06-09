@@ -108,16 +108,17 @@ class Bot:
             state.opponent.y) and state.opponent.speed == 0):
             return Cmd.NOP
 
-        return score(opp_search(state), state.switch(), self.opp_weights)
+        return score(opp_search(state), state.switch(), self.opp_weights)[0]
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        cmd = score(search(self.state, self.pred_opp, max_search_depth=4),
+        cmds = score(search(self.state, self.pred_opp, max_search_depth=4),
                     self.state, self.weights)
+        cmd = cmds[0]
 
         if cmd == Cmd.NOP:
-            cmd = offensive_search(self.state, self.pred_opp)
+            cmd = offensive_search(self.state, cmds, self.pred_opp)
 
         # TODO update the global map if commands result in map changes for
         # later use by calc_opp_cmd
