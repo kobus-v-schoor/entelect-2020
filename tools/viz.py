@@ -254,7 +254,9 @@ while True:
                 r = input()
                 reset = False
                 r = r if r else ']'
-                if r == ']':
+                if r == 'c':
+                    manual = False
+                elif r == ']':
                     round_num += 1
                 elif r == '[':
                     round_num -= 1

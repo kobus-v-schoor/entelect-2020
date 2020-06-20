@@ -117,8 +117,10 @@ class Bot:
                     self.state, self.weights)
         cmd = cmds[0]
 
-        if cmd == Cmd.NOP:
-            cmd = offensive_search(self.state, cmds, self.pred_opp)
+        # if cmd == Cmd.NOP:
+        #     cmd = offensive_search(self.state, cmds, self.pred_opp)
+        if cmd == Cmd.NOP and self.state.player.oils > 0:
+            cmd = Cmd.OIL
 
         # TODO update the global map if commands result in map changes for
         # later use by calc_opp_cmd

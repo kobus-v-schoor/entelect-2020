@@ -514,6 +514,7 @@ class TestNextState:
             assert cur.speed == Speed.SPEED_1.value
             assert cur.score - prev.score == -7
             assert nstate.map[prev.x + 2, prev.y] == block
+            assert state.map[prev.x + 2, prev.y] == Block.CYBERTRUCK
 
     def test_hit_cybertruck_both_samelane(self):
         state = setup_state()
