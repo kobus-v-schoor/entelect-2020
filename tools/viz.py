@@ -29,6 +29,7 @@ class Block(enum.Enum):
     WALL = 6
     LIZARD = 7
     TWEET = 8
+    EMP = 9
 
     CYBERTRUCK = 100
 
@@ -42,8 +43,11 @@ block_renders = {
     Block.WALL: '#',
     Block.LIZARD: '∱',
     Block.TWEET: 'T',
+    Block.EMP: '*',
     Block.CYBERTRUCK: 'C',
 }
+
+max_speed = [15, 9, 8, 6, 3, 0]
 
 if len(sys.argv) > 1:
     match_dir = sys.argv[1]
@@ -130,11 +134,14 @@ def read_state(cur_round, next_round, player):
     info['id'] = cur_state['player']['id']
     info['speed'] = cur_state['player']['speed']
     info['state'] = cur_state['player']['state']
+    info['damage'] = cur_state['player'].get('damage', 0)
+    info['max speed'] = max_speed[min(len(max_speed)-1, info['damage'])]
     info['powerups'] = {
         'oils': cur_state['player']['powerups'].count('OIL'),
         'boosts': cur_state['player']['powerups'].count('BOOST'),
         'lizards': cur_state['player']['powerups'].count('LIZARD'),
         'tweets': cur_state['player']['powerups'].count('TWEET'),
+        'emps': cur_state['player']['powerups'].count('EMP'),
     }
     info['boosting'] = cur_state['player']['boosting']
     info['boostcount'] = cur_state['player']['boostCounter']
@@ -167,7 +174,10 @@ def render(state, frame_prog):
     start_pos = state['start'][pid]
     end_pos = state['end'][pid]
     speed = state['info']['speed']
-    add(f'pos: {start_pos} -> {end_pos}, speed: {speed}')
+    damage = state['info']['damage']
+    mspeed = state['info']['max speed']
+    add(f'pos: {start_pos} -> {end_pos}, speed: {speed} ({mspeed})'
+        f', damage: {damage}')
 
     add(f"state: {state['info']['state']}")
     add(f"cmd: {state['cmd']['cmd']}, exec time: {state['cmd']['exec_time']}")
