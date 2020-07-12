@@ -8,7 +8,8 @@ zip:
 clean:
 	rm -fvr sloth/bot.log tests/bot.log sloth/rounds
 	rm -fvr bot.zip tools.zip
-	rm -fvr sloth/__pycache__ profile.prof
+	rm -fvr profile.prof
+	find -name __pycache__ -exec rm -rv {} +
 
 run:
 	cd sloth; python3 main.py

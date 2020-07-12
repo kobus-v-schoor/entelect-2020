@@ -35,6 +35,8 @@ class TestPlayer:
             ],
             'boosting': True,
             'boostCounter': 3,
+            'damage': 4,
+            'score': 100
         })
 
         assert p.id == 1
@@ -47,6 +49,8 @@ class TestPlayer:
         assert p.tweets == 4
         assert p.boosting == True
         assert p.boost_counter == 3
+        assert p.damage == 4
+        assert p.score == 100
 
     def test_transfer_mods(self):
         player1 = self.setup_player()
@@ -60,6 +64,9 @@ class TestPlayer:
         player1.boosting = True
         player1.boost_counter = 3
 
+        player1.damage = 3
+        player1.score = 110
+
         player1.transfer_mods(player2)
 
         assert player2.boosts == 1
@@ -69,6 +76,9 @@ class TestPlayer:
 
         assert player2.boosting == True
         assert player2.boost_counter == 3
+
+        assert player2.damage == 3
+        assert player2.score == 110
 
     def test_hash_eq(self):
         player1 = self.setup_player()

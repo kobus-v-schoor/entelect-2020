@@ -10,6 +10,7 @@ class Block(enum.Enum):
     WALL = 6
     LIZARD = 7
     TWEET = 8
+    EMP = 9
 
     CYBERTRUCK = 100
 
@@ -24,22 +25,35 @@ class Speed(enum.Enum):
     BOOST_SPEED = 15
 
 SPEED_STEPS = [
-        Speed.MIN_SPEED.value,
-        Speed.SPEED_1.value,
-        Speed.SPEED_2.value,
-        Speed.SPEED_3.value,
-        Speed.MAX_SPEED.value,
-        ]
+    Speed.MIN_SPEED.value,
+    Speed.SPEED_1.value,
+    Speed.SPEED_2.value,
+    Speed.SPEED_3.value,
+    Speed.MAX_SPEED.value,
+]
 
-def next_speed(speed):
+
+def max_speed(damage):
+    return SPEED_STEPS[::-1][min(damage, len(SPEED_STEPS)-1)]
+
+def boost_speed(damage):
+    # if damage:
+    #     return max_speed(damage)
+    # else:
+    #     return Speed.BOOST_SPEED.value
+    return Speed.BOOST_SPEED.value
+
+def next_speed(speed, damage=0):
+    m = max_speed(damage)
     try:
-        return next(s for s in SPEED_STEPS if s > speed)
+        return next(s for s in SPEED_STEPS if s > speed and s <= m)
     except StopIteration:
-        return SPEED_STEPS[-1]
+        return m
 
-def prev_speed(speed):
+def prev_speed(speed, damage=0):
+    m = max_speed(damage)
     try:
-        return next(s for s in SPEED_STEPS[::-1] if s < speed)
+        return next(s for s in SPEED_STEPS[::-1] if s < speed and s <= m)
     except StopIteration:
         return SPEED_STEPS[0]
 
@@ -55,6 +69,7 @@ class Cmd:
         OIL = 'USE_OIL'
         LIZARD = 'USE_LIZARD'
         TWEET = 'USE_TWEET'
+        FIX = 'FIX'
 
     def __init__(self, cmd, pos=None):
         if type(cmd) is Cmd.CmdEnum:

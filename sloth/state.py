@@ -1,7 +1,7 @@
 import copy
 from functools import lru_cache
 
-from sloth.enums import Speed, next_speed, prev_speed, Cmd, Block
+from sloth.enums import Speed, next_speed, prev_speed, Cmd, Block, boost_speed
 
 class Player:
     def __init__(self, raw_player):
@@ -23,6 +23,9 @@ class Player:
 
             self.boosting = raw_player['boosting']
             self.boost_counter = raw_player['boostCounter']
+
+            self.damage = raw_player.get('damage', 0)
+            self.score = raw_player.get('score', 0)
         else:
             self.boosts = 0
             self.oils = 0
@@ -32,8 +35,8 @@ class Player:
             self.boosting = False
             self.boost_counter = 0
 
-        # cannot be read directly from the state file
-        self.score = 0
+            self.damage = 0
+            self.score = 0
 
     # transfer this player's mods to another (mods being boosts, oils, etc.)
     def transfer_mods(self, other):
@@ -44,6 +47,9 @@ class Player:
 
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
+
+        other.score = self.score
+        other.damage = self.damage
 
     def __hash__(self):
         return hash(tuple(vars(self).values()))
@@ -81,21 +87,22 @@ class State:
                 (other.player, other.opponent, other.map))
 
 class Trajectory:
-    def __init__(self):
+    def __init__(self, damage):
         self.x_off = 0
         self.y_off = 0
         self.speed = 0
+        self.damage = damage
 
     def next_speed(self):
-        self.speed = next_speed(self.speed)
+        self.speed = next_speed(self.speed, self.damage)
 
     # if min_stop == True then the speed won't go below SPEED_1
     def prev_speed(self, min_stop=False):
         if min_stop:
             if self.speed > Speed.SPEED_1.value:
-                self.speed = prev_speed(self.speed)
+                self.speed = prev_speed(self.speed, self.damage)
         else:
-            self.speed = prev_speed(self.speed)
+            self.speed = prev_speed(self.speed, self.damage)
 
     def min_speed(self):
         self.speed = Speed.SPEED_1.value
@@ -122,7 +129,7 @@ class Trajectory:
         self.x_off += self.speed
 
     def boost(self):
-        self.speed = Speed.BOOST_SPEED.value
+        self.speed = boost_speed(self.damage)
         self.straight()
 
     def apply(self, player):
@@ -224,7 +231,7 @@ def count_boosting(player):
             player.speed = Speed.MAX_SPEED.value
 
 def calc_trajectory(player, cmd):
-    traj = Trajectory()
+    traj = Trajectory(player.damage)
     traj.speed = player.speed
 
     if cmd == Cmd.NOP:
@@ -360,7 +367,7 @@ def calc_path_mods(state_map, player, traj, lizarding):
     return path_mods
 
 def track_boosting(player):
-    if player.boosting and player.speed != Speed.BOOST_SPEED.value:
+    if player.boosting and player.speed != boost_speed(player.damage):
         player.boosting = False
         player.boost_counter = 0
 
