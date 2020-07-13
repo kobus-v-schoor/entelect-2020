@@ -32,6 +32,11 @@ class TestPlayer:
                 'TWEET',
                 'TWEET',
                 'TWEET',
+                'EMP',
+                'EMP',
+                'EMP',
+                'EMP',
+                'EMP',
             ],
             'boosting': True,
             'boostCounter': 3,
@@ -47,6 +52,7 @@ class TestPlayer:
         assert p.oils == 2
         assert p.lizards == 3
         assert p.tweets == 4
+        assert p.emps == 5
         assert p.boosting == True
         assert p.boost_counter == 3
         assert p.damage == 4
@@ -60,6 +66,7 @@ class TestPlayer:
         player1.oils = 2
         player1.lizards = 3
         player1.tweets = 4
+        player1.emps = 5
 
         player1.boosting = True
         player1.boost_counter = 3
@@ -73,6 +80,7 @@ class TestPlayer:
         assert player2.oils == 2
         assert player2.lizards == 3
         assert player2.tweets == 4
+        assert player2.emps == 5
 
         assert player2.boosting == True
         assert player2.boost_counter == 3
@@ -199,6 +207,19 @@ class TestValidActions:
         assert Cmd.LIZARD not in valid_actions(state)
         state.player.lizards = 1
         assert Cmd.LIZARD in valid_actions(state)
+
+    # add back when next state accepts offensive actions
+    # def test_emp(self):
+    #     state = setup_state()
+    #     assert Cmd.EMP not in valid_actions(state)
+    #     state.player.emps = 1
+    #     assert Cmd.EMP in valid_actions(state)
+
+    def test_fix(self):
+        state = setup_state()
+        assert Cmd.FIX not in valid_actions(state)
+        state.player.damage = 1
+        assert Cmd.FIX in valid_actions(state)
 
 class TestNextState:
     def test_nop(self):
@@ -383,6 +404,45 @@ class TestNextState:
             assert cur.x - prev.x == prev.speed
             assert cur.speed == prev_speed(prev.speed)
 
+    def test_fix(self):
+        state = setup_state()
+        state.player.damage = 3
+        state.opponent.damage = 3
+        cmd = Cmd.FIX
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x == prev.x
+            assert cur.speed == prev.speed
+            assert prev.damage == 3
+            assert cur.damage == 1
+
+        state.player.damage = 1
+        state.opponent.damage = 1
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x == prev.x
+            assert cur.speed == prev.speed
+            assert prev.damage == 1
+            assert cur.damage == 0
+
+        state.player.damage = 0
+        state.opponent.damage = 0
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x == prev.x
+            assert cur.speed == prev.speed
+            assert prev.damage == 0
+            assert cur.damage == 0
+
     def test_hit_mud(self):
         state = setup_state()
         cmd = Cmd.NOP
@@ -399,6 +459,8 @@ class TestNextState:
             assert cur.speed == prev_speed(prev.speed)
             assert cur.score - prev.score == -3
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 1
 
     def test_hit_oil_spill(self):
         state = setup_state()
@@ -416,6 +478,8 @@ class TestNextState:
             assert cur.speed == prev_speed(prev.speed)
             assert cur.score - prev.score == -4
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 1
 
     def test_hit_oil_item(self):
         state = setup_state()
@@ -434,6 +498,8 @@ class TestNextState:
             assert cur.oils - prev.oils == 1
             assert cur.score - prev.score == 4
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 0
 
     def test_hit_boost(self):
         state = setup_state()
@@ -452,6 +518,8 @@ class TestNextState:
             assert cur.boosts - prev.boosts == 1
             assert cur.score - prev.score == 4
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 0
 
     def test_hit_wall(self):
         state = setup_state()
@@ -469,6 +537,8 @@ class TestNextState:
             assert cur.speed == Speed.SPEED_1.value
             assert cur.score - prev.score == -5
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 2
 
     def test_hit_lizard(self):
         state = setup_state()
@@ -487,6 +557,8 @@ class TestNextState:
             assert cur.lizards - prev.lizards == 1
             assert cur.score - prev.score == 4
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 0
 
     def test_hit_tweet(self):
         state = setup_state()
@@ -505,6 +577,28 @@ class TestNextState:
             assert cur.tweets - prev.tweets == 1
             assert cur.score - prev.score == 4
             assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 0
+
+    def test_hit_emp(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.EMP
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == prev.speed
+            assert cur.speed == prev.speed
+            assert cur.emps - prev.emps == 1
+            assert cur.score - prev.score == 4
+            assert nstate.map[prev.x + 1, prev.y] == block
+            assert prev.damage == 0
+            assert cur.damage == 0
 
     def test_hit_cybertruck(self):
         state = setup_state()
@@ -516,6 +610,11 @@ class TestNextState:
             state.map[player.x + 2, player.y].set_cybertruck()
             assert player.speed > 1
 
+        # TODO fix multi hit cybertruck bug
+        # state.map.update_global_map() # this triggers it because previously
+        # an overlay was created for the state, maybe use that to fix it? in
+        # map creation rather don't write cybertruck to global map? idk
+
         nstate = next_state(state, cmd, cmd)
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
@@ -525,6 +624,8 @@ class TestNextState:
             assert cur.score - prev.score == -7
             assert nstate.map[prev.x + 2, prev.y] == block
             assert state.map[prev.x + 2, prev.y] == Block.CYBERTRUCK
+            assert prev.damage == 0
+            assert cur.damage == 2
 
     def test_hit_cybertruck_both_samelane(self):
         state = setup_state()
@@ -547,7 +648,8 @@ class TestNextState:
         assert nstate.player.x == 3 # one behind opponent (rear-end)
         assert nstate.player.speed == Speed.SPEED_1.value
         assert nstate.map[5, 1] == Block.EMPTY
-
+        assert nstate.player.damage == 2
+        assert nstate.opponent.damage == 2
 
     def test_hit_cybertruck_both_difflane(self):
         state = setup_state()
@@ -574,6 +676,9 @@ class TestNextState:
         assert nstate.opponent.y == 3
         assert nstate.opponent.speed == Speed.SPEED_1.value
 
+        assert nstate.player.damage == 2
+        assert nstate.opponent.damage == 2
+
         assert nstate.map[3, 2] == Block.EMPTY
 
     def test_collision_same_block(self):
@@ -590,6 +695,8 @@ class TestNextState:
             assert cur.x == prev.x + prev.speed - 2
             assert cur.speed == prev.speed
             assert cur.score == prev.score
+            assert prev.damage == 0
+            assert cur.damage == 0
 
     def test_collision_rear_end(self):
         state = setup_state()
@@ -608,6 +715,8 @@ class TestNextState:
         assert nstate.player.y == state.player.y
         assert nstate.opponent.x == nstate.player.x - 1
         assert nstate.opponent.y == state.opponent.y
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
 
         state.player.x = 1
         state.player.y = 2
@@ -620,6 +729,8 @@ class TestNextState:
         assert nstate.player.y == state.player.y
         assert nstate.opponent.x == state.opponent.x + state.opponent.speed
         assert nstate.opponent.y == state.opponent.y
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
 
     def test_collision_rear_end_same_block(self):
         state = setup_state()
@@ -640,6 +751,8 @@ class TestNextState:
         assert nstate.player.y == state.player.y
         assert nstate.opponent.x == nstate.player.x - 1
         assert nstate.opponent.y == state.opponent.y
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
 
         state.player.speed = 9
         state.opponent.speed = 8
@@ -657,6 +770,8 @@ class TestNextState:
         assert nstate.player.y == state.player.y
         assert nstate.opponent.x == state.opponent.x + state.opponent.speed
         assert nstate.opponent.y == state.opponent.y
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
 
     def test_collision_lizarding(self):
         state = setup_state()
@@ -676,6 +791,8 @@ class TestNextState:
         assert nstate.opponent.x == state.opponent.x + state.opponent.speed
         assert nstate.opponent.y == state.opponent.y
         assert nstate.opponent.x > nstate.player.x
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
 
         state.player.x = 1
         state.player.y = 2
@@ -692,6 +809,43 @@ class TestNextState:
         assert nstate.opponent.x == state.opponent.x + state.opponent.speed
         assert nstate.opponent.y == state.opponent.y
         assert nstate.player.x > nstate.opponent.x
+        assert nstate.player.damage == 0
+        assert nstate.opponent.damage == 0
+
+    def test_damage_cap(self):
+        state = setup_state()
+        cmd = Cmd.NOP
+        block = Block.WALL
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+            player.damage = 4
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.damage == 4
+            assert cur.damage == 6
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+            player.damage = 5
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.damage == 5
+            assert cur.damage == 6
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
+            player.damage = 6
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.damage == 6
+            assert cur.damage == 6
 
 class TestCalcOppCmd:
     def test_valid_cmds(self):

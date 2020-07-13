@@ -20,6 +20,7 @@ class Player:
             self.oils = powerups.count('OIL')
             self.lizards = powerups.count('LIZARD')
             self.tweets = powerups.count('TWEET')
+            self.emps = powerups.count('EMP')
 
             self.boosting = raw_player['boosting']
             self.boost_counter = raw_player['boostCounter']
@@ -31,6 +32,7 @@ class Player:
             self.oils = 0
             self.lizards = 0
             self.tweets = 0
+            self.emps = 0
 
             self.boosting = False
             self.boost_counter = 0
@@ -44,6 +46,7 @@ class Player:
         other.oils = self.oils
         other.lizards = self.lizards
         other.tweets = self.tweets
+        other.emps = self.emps
 
         other.boosting = self.boosting
         other.boost_counter = self.boost_counter
@@ -132,6 +135,9 @@ class Trajectory:
         self.speed = boost_speed(self.damage)
         self.straight()
 
+    def still(self):
+        pass
+
     def apply(self, player):
         player.x += self.x_off
         player.y += self.y_off
@@ -146,8 +152,10 @@ class PathMods:
         self.boosts = 0
         self.lizards = 0
         self.tweets = 0
+        self.emps = 0
 
         self.penalties = 0
+        self.damage = 0
         self.score = 0
 
         # for any obstacles that were consumed/destroyed in the process
@@ -159,12 +167,16 @@ class PathMods:
         self.penalties += 1
         if block == Block.MUD:
             self.score -= 3
+            self.damage += 1
         elif block == Block.OIL_SPILL:
             self.score -= 4
+            self.damage += 1
         elif block == Block.WALL:
             self.score -= 5
+            self.damage += 2
         elif block == Block.CYBERTRUCK:
             self.score -= 7
+            self.damage += 2
 
     def oil_pickup(self):
         self.oils += 1
@@ -182,6 +194,10 @@ class PathMods:
         self.tweets += 1
         self.score += 4
 
+    def emp_pickup(self):
+        self.emps += 1
+        self.score += 4
+
     def hit_cybertruck(self, pos):
         self.consumed['cybertrucks'].append(pos)
 
@@ -190,8 +206,10 @@ class PathMods:
         player.boosts += self.boosts
         player.lizards += self.lizards
         player.tweets += self.tweets
+        player.emps += self.emps
 
         player.score += self.score
+        player.damage = min(player.damage + self.damage, 6)
 
     def __repr__(self):
         return str(vars(self))
@@ -219,6 +237,8 @@ def valid_actions(state):
         valid.append(Cmd.BOOST)
     if state.player.lizards > 0:
         valid.append(Cmd.LIZARD)
+    if state.player.damage > 0:
+        valid.append(Cmd.FIX)
 
     return valid
 
@@ -248,8 +268,15 @@ def calc_trajectory(player, cmd):
         traj.boost()
     elif cmd == Cmd.LIZARD:
         traj.straight()
+    elif cmd == Cmd.FIX:
+        traj.still()
 
     return traj
+
+def check_fix(player, cmd):
+    if cmd != Cmd.FIX:
+        return
+    player.damage = max(0, player.damage - 2)
 
 def track_powerups(player, cmd):
     if cmd == Cmd.BOOST:
@@ -312,6 +339,10 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
         traj_b.y_off = 0
 
 def gen_path(state_map, player, traj, lizarding):
+    # didn't move at all, so no path to generate
+    if traj.x_off == traj.y_off == 0:
+        return
+
     if not lizarding:
         start = player.x if traj.y_off else player.x + 1
     else:
@@ -363,6 +394,8 @@ def calc_path_mods(state_map, player, traj, lizarding):
             path_mods.lizard_pickup()
         elif block == Block.TWEET:
             path_mods.tweet_pickup()
+        elif block == Block.EMP:
+            path_mods.emp_pickup()
 
     return path_mods
 
@@ -391,6 +424,10 @@ def next_state(state, cmd, opp_cmd):
     ## calculate trajectories
     player_traj = calc_trajectory(state.player, cmd)
     opp_traj = calc_trajectory(state.opponent, opp_cmd)
+
+    ## check fixes
+    check_fix(state.player, cmd)
+    check_fix(state.opponent, cmd)
 
     ## check for powerups that were used and consume them
     track_powerups(state.player, cmd)
