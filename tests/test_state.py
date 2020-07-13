@@ -609,15 +609,31 @@ class TestNextState:
         cmd = Cmd.NOP
         block = Block.EMPTY
 
-        for player in [state.player, state.opponent]:
-            state.map[player.x + 2, player.y] = block
-            state.map[player.x + 2, player.y].set_cybertruck()
-            assert player.speed > 1
+        # initing the map manually to try and trigger the bug where the
+        # cybertruck gets removed from the map during next_state
+        state.map = Map(global_map=state.map.global_map, raw_map=[
+            [{
+                'position': {
+                    'x': state.player.x + 2,
+                    'y': state.player.y,
+                },
+                'surfaceObject': block.value,
+                'isOccupiedByCyberTruck': True
+            }],
+            [{
+                'position': {
+                    'x': state.opponent.x + 2,
+                    'y': state.opponent.y,
+                },
+                'surfaceObject': block.value,
+                'isOccupiedByCyberTruck': True
+            }],
+        ])
 
-        # TODO fix multi hit cybertruck bug
-        # state.map.update_global_map() # this triggers it because previously
-        # an overlay was created for the state, maybe use that to fix it? in
-        # map creation rather don't write cybertruck to global map? idk
+        for player in [state.player, state.opponent]:
+            assert state.map[player.x + 2, player.y].block == block
+            assert state.map[player.x + 2, player.y] == Block.CYBERTRUCK
+            assert player.speed > 1
 
         nstate = next_state(state, cmd, cmd)
         for prev, cur in zip([state.player, state.opponent],

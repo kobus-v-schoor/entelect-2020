@@ -80,6 +80,9 @@ class Map:
         # store global map
         self.global_map = global_map
 
+        # init mutable view
+        self.view = {}
+
         # flatten raw_map dict
         raw_map = [w for row in raw_map for w in row]
 
@@ -97,14 +100,12 @@ class Map:
 
             if w.get('isOccupiedByCyberTruck', False):
                 global_map[x, y].set_cybertruck()
+                self.view[(x, y)] = global_map[x, y]
 
             self.min_x = min(x, self.min_x)
             self.min_y = min(y, self.min_y)
             self.max_x = max(x, self.max_x)
             self.max_y = max(y, self.max_y)
-
-        # init mutable view
-        self.view = {}
 
     # write view's changes to global map
     def update_global_map(self):

@@ -146,6 +146,7 @@ class TestMap:
             }]
         ])
 
+        assert (1, 1) in omap.view
         assert omap[1, 1] == Block.CYBERTRUCK
         omap[1, 1].unset_cybertruck()
         assert omap[1, 1] == Block.MUD
