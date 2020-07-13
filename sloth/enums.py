@@ -33,7 +33,7 @@ SPEED_STEPS = [
 ]
 
 def max_speed(damage):
-    return SPEED_STEPS[::-1][min(damage, len(SPEED_STEPS)-1)]
+    return SPEED_STEPS[::-1][max(0, min(damage-1, len(SPEED_STEPS)-1))]
 
 def boost_speed(damage):
     # if damage:

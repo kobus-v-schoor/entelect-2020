@@ -411,6 +411,11 @@ def check_cybertrucks(state, consumed):
         x, y = pos
         state.map[x, y].unset_cybertruck()
 
+# caps the player's speed to its maximum allowable value given their damage
+def cap_speed(player):
+    if not player.boosting:
+        player.speed = min(max_speed(player.damage), player.speed)
+
 # calculates the next state given the player and opponent's cmd
 # NOTE it is assumed that both cmds are valid movement cmds
 # NOTE offensive cmds are not supported
@@ -474,6 +479,10 @@ def next_state(state, cmd, opp_cmd):
 
     ## keep track of cybertruck collisions
     check_cybertrucks(state, consumed)
+
+    ## cap speed after damage
+    cap_speed(state.player)
+    cap_speed(state.opponent)
 
     return state
 

@@ -880,8 +880,8 @@ class TestNextState:
         assert nstate.opponent.speed == Speed.MAX_SPEED.value
 
         # speed capped at SPEED_3, so should do nothing
-        state.player.damage = 1
-        state.opponent.damage = 1
+        state.player.damage = 2
+        state.opponent.damage = 2
 
         nstate = next_state(state, cmd, cmd)
         assert nstate.player.speed == Speed.SPEED_3.value
@@ -896,8 +896,8 @@ class TestNextState:
         assert nstate.opponent.speed == Speed.SPEED_3.value
 
         # speed capped at SPEED_2
-        state.player.damage = 2
-        state.opponent.damage = 2
+        state.player.damage = 3
+        state.opponent.damage = 3
         state.player.speed = Speed.SPEED_1.value
         state.opponent.speed = Speed.SPEED_1.value
 
