@@ -32,7 +32,6 @@ SPEED_STEPS = [
     Speed.MAX_SPEED.value,
 ]
 
-
 def max_speed(damage):
     return SPEED_STEPS[::-1][min(damage, len(SPEED_STEPS)-1)]
 

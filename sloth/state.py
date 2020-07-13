@@ -1,7 +1,8 @@
 import copy
 from functools import lru_cache
 
-from sloth.enums import Speed, next_speed, prev_speed, Cmd, Block, boost_speed
+from sloth.enums import (Speed, next_speed, prev_speed, Cmd, Block,
+                         boost_speed, max_speed)
 
 class Player:
     def __init__(self, raw_player):
@@ -225,7 +226,7 @@ class StateTransition:
 def valid_actions(state):
     valid = [Cmd.NOP]
 
-    if state.player.speed < Speed.MAX_SPEED.value:
+    if state.player.speed < max_speed(state.player.damage):
         valid.append(Cmd.ACCEL)
     if state.player.speed > Speed.MIN_SPEED.value:
         valid.append(Cmd.DECEL)

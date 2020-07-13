@@ -1,6 +1,6 @@
 from sloth.state import Player, State, valid_actions, next_state, calc_opp_cmd
 from sloth.maps import GlobalMap, Map
-from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed
+from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed, max_speed
 
 class TestPlayer:
     def setup_player(self):
@@ -180,6 +180,10 @@ class TestValidActions:
         state = setup_state()
         assert Cmd.ACCEL in valid_actions(state)
         state.player.speed = Speed.MAX_SPEED.value
+        assert Cmd.ACCEL not in valid_actions(state)
+
+        state.player.damage = 2
+        state.player.speed = max_speed(state.player.damage)
         assert Cmd.ACCEL not in valid_actions(state)
 
     def test_left(self):
@@ -846,6 +850,68 @@ class TestNextState:
                              [nstate.player, nstate.opponent]):
             assert prev.damage == 6
             assert cur.damage == 6
+
+    def test_damage_speed_limit(self):
+        state = setup_state()
+        cmd = Cmd.ACCEL
+
+        # normal, no damage
+        state.player.speed = Speed.SPEED_3.value
+        state.opponent.speed = Speed.SPEED_3.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.MAX_SPEED.value
+        assert nstate.opponent.speed == Speed.MAX_SPEED.value
+
+        # speed capped at SPEED_3, so should do nothing
+        state.player.damage = 1
+        state.opponent.damage = 1
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_3.value
+        assert nstate.opponent.speed == Speed.SPEED_3.value
+
+        # should be able to accel to SPEED_3
+        state.player.speed = Speed.SPEED_2.value
+        state.opponent.speed = Speed.SPEED_2.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_3.value
+        assert nstate.opponent.speed == Speed.SPEED_3.value
+
+        # speed capped at SPEED_2
+        state.player.damage = 2
+        state.opponent.damage = 2
+        state.player.speed = Speed.SPEED_1.value
+        state.opponent.speed = Speed.SPEED_1.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_2.value
+        assert nstate.opponent.speed == Speed.SPEED_2.value
+
+        # speed capped at MIN_SPEED (0)
+        # not testing boost because it might have different logic
+        state.player.lizards = 1
+        state.opponent.lizards = 1
+
+        for cmd in [Cmd.ACCEL, Cmd.LEFT, Cmd.RIGHT, Cmd.DECEL, Cmd.NOP,
+                    Cmd.LIZARD]:
+            state.player.damage = 6
+            state.opponent.damage = 6
+            state.player.speed = Speed.MIN_SPEED.value
+            state.opponent.speed = Speed.MIN_SPEED.value
+
+            nstate = next_state(state, cmd, cmd)
+            assert nstate.player.speed == Speed.MIN_SPEED.value
+            assert nstate.opponent.speed == Speed.MIN_SPEED.value
+            assert nstate.player.x == state.player.x
+            assert nstate.player.y == state.player.y
+            assert nstate.opponent.x == state.opponent.x
+            assert nstate.opponent.y == state.opponent.y
+
+    def test_damage_boost_limit(self):
+        # TODO implement this when rules are clarified
+        pass
 
 class TestCalcOppCmd:
     def test_valid_cmds(self):
