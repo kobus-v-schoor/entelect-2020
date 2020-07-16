@@ -143,6 +143,7 @@ def score(options, cur_state, weights):
 def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
     actions = []
 
+    ## oil logic
     if state.player.oils > 0:
         # just drop oil if we have to much
         if state.player.oils > 3:
@@ -151,7 +152,7 @@ def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
         # drop oil if opponent is close behind us
         if state.opponent.y == state.player.y:
             if state.opponent.x == state.player.x - 1:
-                actions.append((0, Cmd.OIL))
+                actions.append((1, Cmd.OIL))
             elif 1 <= state.player.x - state.opponent.x <= 15:
                 actions.append((3, Cmd.OIL))
 
@@ -179,6 +180,30 @@ def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
                 actions.append((6, Cmd.OIL))
             elif blocked_left or blocked_right:
                 actions.append((7, Cmd.OIL))
+
+    ## TODO cybertruck logic
+
+    ## emp logic
+    if state.player.emps > 0 and state.opponent.x > state.player.x:
+        # opponent in the same lane as we are
+        # will definitely hit
+        if state.opponent.y == state.player.y:
+            actions.append((0, Cmd.EMP))
+        # opponent in left-most lane and we are one lane right of them
+        # will definitely hit
+        elif (state.opponent.y == state.map.global_map.min_y and
+                state.player.y == state.map.global_map.min_y + 1):
+            actions.append((0, Cmd.EMP))
+        # opponent in right-most lane and we are one lane left of them
+        # will definitely hit
+        elif (state.opponent.y == state.map.global_map.max_y and
+                state.player.y == state.map.global_map.max_y - 1):
+            actions.append((0, Cmd.EMP))
+        # opponent might veer out of range, use prediction to check if option
+        else:
+            nstate = next_state(state, Cmd.NOP, pred_opp(state))
+            if abs(nstate.opponent.y - nstate.player.y) <= 1:
+                actions.append((2, Cmd.EMP))
 
     if actions:
         return min(actions)[1]

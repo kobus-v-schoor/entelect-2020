@@ -113,14 +113,12 @@ class Bot:
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        cmds = score(search(self.state, self.pred_opp, max_search_depth=4),
+        cmds = score(search(self.state, self.pred_opp, max_search_depth=3),
                     self.state, self.weights)
         cmd = cmds[0]
 
-        # if cmd == Cmd.NOP:
-        #     cmd = offensive_search(self.state, cmds, self.pred_opp)
-        if cmd == Cmd.NOP and self.state.player.oils > 0:
-            cmd = Cmd.OIL
+        if cmd == Cmd.NOP:
+            cmd = offensive_search(self.state, cmds, self.pred_opp)
 
         # TODO update the global map if commands result in map changes for
         # later use by calc_opp_cmd
