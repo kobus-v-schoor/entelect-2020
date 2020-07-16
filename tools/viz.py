@@ -179,9 +179,9 @@ def render(state, frame_prog):
     add(f'pos: {start_pos} -> {end_pos}, speed: {speed} ({mspeed})'
         f', damage: {damage}')
 
-    add(f"state: {state['info']['state']}")
     add(f"cmd: {state['cmd']['cmd']}, exec time: {state['cmd']['exec_time']}")
 
+    add(f"state: {state['info']['state']}")
     powerups = state['info']['powerups']
     powerups = ', '.join([f'{k}: {powerups[k]}' for k in powerups])
     add(f'powerups: {powerups}')

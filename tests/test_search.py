@@ -148,7 +148,7 @@ class TestOffensiveSearch:
 
         assert offensive_search(state) == Cmd.OIL
 
-    def test_passage_block(self):
+    def test_oil_passage_block(self):
         state = setup_state()
 
         state.player.oils = 1
@@ -173,6 +173,39 @@ class TestOffensiveSearch:
         state.map[x, y - 1] = Block.MUD
         state.map[x, y + 1] = Block.MUD
         assert offensive_search(state) == Cmd.OIL
+
+    def test_tweet_no_tweet(self):
+        state = setup_state()
+        state.player.tweets = 0
+
+        assert offensive_search(state) == Cmd.NOP
+
+    def test_tweet_behind(self):
+        state = setup_state()
+
+        state.player.tweets = 1
+        state.player.x = 100
+        state.opponent.x = 100
+        assert offensive_search(state) == Cmd.NOP
+
+        state.player.x = 90
+        assert offensive_search(state) == Cmd.NOP
+
+    def test_tweet_place_in_future_path(self):
+        state = setup_state()
+        state.player.tweets = 1
+
+        state.player.x = 200
+
+        state.opponent.y = 1
+        state.opponent.x = 100
+        pred = lambda s: Cmd.RIGHT
+
+        nstate = next_state(state, Cmd.NOP, pred(state))
+        nnstate = next_state(nstate, Cmd.NOP, pred(nstate))
+        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x + 1, nnstate.opponent.y))
+
+        assert offensive_search(state, pred_opp=pred) == match
 
     def test_emp_no_emp(self):
         state = setup_state()
@@ -233,29 +266,3 @@ class TestOffensiveSearch:
         state.opponent.y = 4
 
         assert offensive_search(state) == Cmd.EMP
-
-    def test_emp_pred_lane(self):
-        state = setup_state()
-        state.player.emps = 1
-
-        state.player.x = 100
-        state.opponent.x = 150
-
-        state.player.y = 1
-        state.opponent.y = 2
-
-        assert offensive_search(state) == Cmd.EMP
-        assert offensive_search(state, pred_opp=lambda s: Cmd.RIGHT) == Cmd.NOP
-
-        state.player.y = 1
-        state.opponent.y = 3
-
-        assert offensive_search(state) == Cmd.NOP
-        assert offensive_search(state, pred_opp=lambda s: Cmd.LEFT) == Cmd.EMP
-
-
-        state.player.y = 1
-        state.opponent.y = 4
-
-        assert offensive_search(state) == Cmd.NOP
-        assert offensive_search(state, pred_opp=lambda s: Cmd.LEFT) == Cmd.NOP

@@ -140,7 +140,7 @@ def score(options, cur_state, weights):
 # checks for various conditions and assigns preferences to the actions and then
 # selects the action with the highest preference
 # preference ranges from 0-10, with 0 being highest pref
-def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
+def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
     actions = []
 
     ## oil logic
@@ -181,7 +181,19 @@ def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
             elif blocked_left or blocked_right:
                 actions.append((7, Cmd.OIL))
 
-    ## TODO cybertruck logic
+    ## cybertruck logic
+    # only kicks in when we are ahead, since if we're behind we can't predict
+    # the opponent
+    if state.player.tweets > 0 and state.player.x > state.opponent.x:
+        # predict the opponent's next 2 moves. once that is done, place the
+        # cybertruck in the path of where the second move would have taken them
+        # TODO somehow try and check if we might not be accidentally making
+        # trouble for ourselves by placing the ct in front of us
+        nstate = next_state(state, cmds[0], pred_opp(state))
+        nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
+        pos = (nstate.opponent.x + 1, nnstate.opponent.y)
+
+        actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
     ## emp logic
     if state.player.emps > 0 and state.opponent.x > state.player.x:
@@ -199,11 +211,6 @@ def offensive_search(state, cmds=[], pred_opp=lambda s: Cmd.ACCEL):
         elif (state.opponent.y == state.map.global_map.max_y and
                 state.player.y == state.map.global_map.max_y - 1):
             actions.append((0, Cmd.EMP))
-        # opponent might veer out of range, use prediction to check if option
-        else:
-            nstate = next_state(state, Cmd.NOP, pred_opp(state))
-            if abs(nstate.opponent.y - nstate.player.y) <= 1:
-                actions.append((2, Cmd.EMP))
 
     if actions:
         return min(actions)[1]
