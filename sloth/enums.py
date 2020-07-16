@@ -36,11 +36,10 @@ def max_speed(damage):
     return SPEED_STEPS[::-1][max(0, min(damage-1, len(SPEED_STEPS)-1))]
 
 def boost_speed(damage):
-    # if damage:
-    #     return max_speed(damage)
-    # else:
-    #     return Speed.BOOST_SPEED.value
-    return Speed.BOOST_SPEED.value
+    if damage:
+        return max_speed(damage)
+    else:
+        return Speed.BOOST_SPEED.value
 
 def next_speed(speed, damage=0):
     m = max_speed(damage)
@@ -68,6 +67,7 @@ class Cmd:
         OIL = 'USE_OIL'
         LIZARD = 'USE_LIZARD'
         TWEET = 'USE_TWEET'
+        EMP = 'USE_EMP'
         FIX = 'FIX'
 
     def __init__(self, cmd, pos=None):

@@ -212,6 +212,10 @@ class PathMods:
         player.score += self.score
         player.damage = min(player.damage + self.damage, 6)
 
+        if player.boosting and self.penalties > 0:
+            player.boosting = False
+            player.boost_counter = 0
+
     def __repr__(self):
         return str(vars(self))
 
@@ -224,22 +228,25 @@ class StateTransition:
 
 # returns a list of valid movement actions for a given state
 def valid_actions(state):
-    valid = [Cmd.NOP]
+    valid = []
 
-    if state.player.speed < max_speed(state.player.damage):
-        valid.append(Cmd.ACCEL)
-    if state.player.speed > Speed.MIN_SPEED.value:
-        valid.append(Cmd.DECEL)
-    if state.player.y > state.map.min_y:
-        valid.append(Cmd.LEFT)
-    if state.player.y < state.map.max_y:
-        valid.append(Cmd.RIGHT)
+    if state.player.damage > 0:
+        valid.append(Cmd.FIX)
     if state.player.boosts > 0 and not state.player.boosting:
         valid.append(Cmd.BOOST)
     if state.player.lizards > 0:
         valid.append(Cmd.LIZARD)
-    if state.player.damage > 0:
-        valid.append(Cmd.FIX)
+
+    if state.player.speed < max_speed(state.player.damage):
+        valid.append(Cmd.ACCEL)
+    if state.player.y > state.map.min_y:
+        valid.append(Cmd.LEFT)
+    if state.player.y < state.map.max_y:
+        valid.append(Cmd.RIGHT)
+
+    if state.player.speed > Speed.MIN_SPEED.value:
+        valid.append(Cmd.DECEL)
+    valid.append(Cmd.NOP)
 
     return valid
 
@@ -340,12 +347,19 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
         traj_b.y_off = 0
 
 def gen_path(state_map, player, traj, lizarding):
+    # FIXME workaround for bug in game engine where if you stand still your
+    # current block is applied again
+
     # didn't move at all, so no path to generate
-    if traj.x_off == traj.y_off == 0:
-        return
+    # if traj.x_off == traj.y_off == 0:
+    #     return
 
     if not lizarding:
-        start = player.x if traj.y_off else player.x + 1
+        # FIXME (same bug as above)
+        if traj.x_off:
+            start = player.x if traj.y_off else player.x + 1
+        else:
+            start = player.x
     else:
         start = player.x + traj.x_off
     end = player.x + traj.x_off
@@ -400,11 +414,6 @@ def calc_path_mods(state_map, player, traj, lizarding):
 
     return path_mods
 
-def track_boosting(player):
-    if player.boosting and player.speed != boost_speed(player.damage):
-        player.boosting = False
-        player.boost_counter = 0
-
 def check_cybertrucks(state, consumed):
     ## remove cybertrucks that were crashed into
     for pos in consumed['cybertrucks']:
@@ -415,6 +424,11 @@ def check_cybertrucks(state, consumed):
 def cap_speed(player):
     if not player.boosting:
         player.speed = min(max_speed(player.damage), player.speed)
+
+def ns_filter(cmd):
+    if cmd in [Cmd.OIL, Cmd.TWEET, Cmd.EMP]:
+        return Cmd.NOP
+    return cmd
 
 # calculates the next state given the player and opponent's cmd
 # NOTE it is assumed that both cmds are valid movement cmds
@@ -474,8 +488,7 @@ def next_state(state, cmd, opp_cmd):
     opp_mods.apply(state.opponent)
 
     ## check if boosting was cancelled
-    track_boosting(state.player)
-    track_boosting(state.opponent)
+    # now done in path mod calculation
 
     ## keep track of cybertruck collisions
     check_cybertrucks(state, consumed)

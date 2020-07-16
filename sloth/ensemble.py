@@ -6,7 +6,8 @@ from sloth.search import Weights, opp_search, score
 class Ensemble:
     def __init__(self, size):
         weight_len = Weights.len()
-        weight_options = [0, 0.25, 0.5, 0.75, 1]
+        # weight_options = [0, 0.25, 0.5, 0.75, 1]
+        weight_options = [0, 0.25, 0.75, 1]
 
         self.weights = (np.array([a for a in itertools.product(weight_options,
             repeat=weight_len)])).transpose()

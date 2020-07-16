@@ -1,4 +1,4 @@
-from sloth.enums import max_speed, next_speed, prev_speed, Speed
+from sloth.enums import max_speed, next_speed, prev_speed, Speed, boost_speed
 
 class TestEnumFuncs:
     def test_max_speed(self):
@@ -16,3 +16,8 @@ class TestEnumFuncs:
         assert next_speed(Speed.SPEED_3.value, 2) == Speed.SPEED_3.value
         assert next_speed(Speed.SPEED_3.value, 3) == Speed.SPEED_2.value
         assert next_speed(Speed.SPEED_3.value, 4) == Speed.SPEED_1.value
+
+    def test_boost_speed(self):
+        assert boost_speed(0) == Speed.BOOST_SPEED.value
+        for i in range(1, 7):
+            assert boost_speed(i) == max_speed(i)

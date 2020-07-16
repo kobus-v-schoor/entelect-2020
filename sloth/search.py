@@ -14,7 +14,9 @@ class Weights:
             self.oils = raw_weights.get('oils', 0)
             self.lizards = raw_weights.get('lizards', 0)
             self.tweets = raw_weights.get('tweets', 0)
+            self.emps = raw_weights.get('emps', 0)
 
+            self.damage = raw_weights.get('damage', 0)
             self.player_score = raw_weights.get('score', 0)
         else:
             (self.pos,
@@ -24,7 +26,9 @@ class Weights:
              self.oils,
              self.lizards,
              self.tweets,
+             self.emps,
 
+             self.damage,
              self.player_score) = raw_weights
 
     # takes a from_state and to_state and calculates a numerical score
@@ -39,14 +43,16 @@ class Weights:
             self.oils * (to.oils - prev.oils),
             self.lizards * (to.lizards - prev.lizards),
             self.tweets * (to.tweets - prev.tweets),
+            self.emps * (to.emps - prev.emps),
 
+            self.damage * (to.damage - prev.damage),
             self.player_score * (to.score - prev.score),
             ])
 
     # returns the amount of weights
     @staticmethod
     def len():
-        return 7
+        return 9
 
     # encodes a from and to state into a numerical array
     @staticmethod
@@ -55,11 +61,13 @@ class Weights:
             to_state.player.x - from_state.player.x,
             to_state.player.speed,
 
-            (to_state.player.boosts - from_state.player.boosts),
-            (to_state.player.oils - from_state.player.oils),
-            (to_state.player.lizards - from_state.player.lizards),
-            (to_state.player.tweets - from_state.player.tweets),
+            to_state.player.boosts - from_state.player.boosts,
+            to_state.player.oils - from_state.player.oils,
+            to_state.player.lizards - from_state.player.lizards,
+            to_state.player.tweets - from_state.player.tweets,
+            to_state.player.emps - from_state.player.emps,
 
+            to_state.player.damage - from_state.player.damage,
             to_state.player.score - from_state.player.score,
         ]
 
