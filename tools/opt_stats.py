@@ -15,15 +15,17 @@ seed = {
     'oils': 0.4871,
     'lizards': 2.3,
     'tweets': 0,
+    'emps': 1,
 
+    'damage': -1,
     'score': 0.3
 }
 
 print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
 # pos is kept constant as point of reference
-movement = ['speed', 'boosts', 'score', 'lizards']
-offensive = ['oils'] # , 'tweets']
+movement = ['damage', 'speed', 'boosts', 'lizards', 'score']
+offensive = ['oils', 'tweets', 'emps']
 
 match_count = 20
 samples = 30

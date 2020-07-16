@@ -1,6 +1,7 @@
 from sloth.state import Player, State, valid_actions, next_state, calc_opp_cmd
 from sloth.maps import GlobalMap, Map
-from sloth.enums import Block, Speed, Cmd, prev_speed, next_speed, max_speed
+from sloth.enums import (Block, Speed, Cmd, prev_speed, next_speed, max_speed,
+                         boost_speed)
 
 class TestPlayer:
     def setup_player(self):
@@ -204,6 +205,7 @@ class TestValidActions:
         state.player.boosts = 1
         assert Cmd.BOOST in valid_actions(state)
         state.player.boosting = True
+        state.player.speed = boost_speed(state.player.damage)
         assert Cmd.BOOST not in valid_actions(state)
 
     def test_lizards(self):
@@ -446,6 +448,27 @@ class TestNextState:
             assert cur.speed == prev.speed
             assert prev.damage == 0
             assert cur.damage == 0
+
+    def test_turn_at_zero_speed(self):
+        state = setup_state()
+
+        state.player.x = 10
+        state.player.y = 2
+        state.player.speed = 0
+
+        state.opponent.x = 50
+        state.opponent.y = 2
+        state.opponent.speed = 0
+
+        for cmd in [Cmd.LEFT, Cmd.RIGHT]:
+            nstate = next_state(state, cmd, cmd)
+
+            for prev, cur in zip([state.player, state.opponent],
+                                 [nstate.player, nstate.opponent]):
+                assert cur.x == prev.x
+                assert cur.y == prev.y
+                assert cur.speed == prev.speed == 0
+                assert cur.damage == prev.damage
 
     # FIXME workaround for bug where in game engine where if you fix/stand
     # still on a special block that block is applied again

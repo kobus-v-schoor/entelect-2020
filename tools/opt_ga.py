@@ -28,9 +28,10 @@ seed = {
     "boosts": 9.6,
     "oils": 0,
     "lizards": 4,
-    # "tweets": 0,
+    "tweets": 0,
 
-    "score": 0.3
+    "score": 0.3,
+    "damage": -1,
 }
 
 # generate offspring between two individuals

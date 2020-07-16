@@ -232,16 +232,17 @@ def valid_actions(state):
 
     if state.player.damage > 0:
         valid.append(Cmd.FIX)
-    if state.player.boosts > 0 and not state.player.boosting:
+    if (state.player.boosts > 0 and
+            state.player.speed < boost_speed(state.player.damage)):
         valid.append(Cmd.BOOST)
-    if state.player.lizards > 0:
+    if state.player.lizards > 0 and state.player.speed > 0:
         valid.append(Cmd.LIZARD)
 
     if state.player.speed < max_speed(state.player.damage):
         valid.append(Cmd.ACCEL)
-    if state.player.y > state.map.min_y:
+    if state.player.y > state.map.min_y and state.player.speed > 0:
         valid.append(Cmd.LEFT)
-    if state.player.y < state.map.max_y:
+    if state.player.y < state.map.max_y and state.player.speed > 0:
         valid.append(Cmd.RIGHT)
 
     if state.player.speed > Speed.MIN_SPEED.value:
