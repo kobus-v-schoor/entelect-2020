@@ -27,6 +27,9 @@ class Bot:
 
         self.ensemble = Ensemble(size=1000)
 
+        self.search_depth = 3
+        self.opp_search_depth = 2
+
     # waits for next round number and returns it
     def wait_for_next_round(self):
         try:
@@ -97,6 +100,9 @@ class Bot:
     # NOTE only predicts movement and not offensive actions
     @lru_cache(maxsize=None)
     def pred_opp(self, state):
+        if self.opp_search_depth == 0:
+            return Cmd.ACCEL
+
         # if opponent is outside our view just assume they are accelerating
         # since we won't be able to predict anything better than that
         if state.opponent.x >= self.state.map.max_x:
@@ -108,13 +114,25 @@ class Bot:
             state.opponent.y) and state.opponent.speed == 0):
             return Cmd.NOP
 
-        return score(opp_search(state), state.switch(), self.opp_weights)[0]
+        return score(opp_search(state, max_search_depth=self.opp_search_depth),
+                     state.switch(), self.opp_weights)[0]
 
     # returns the cmd that should be executed given the current state
     # done by doing a search for the best move
     def calc_cmd(self):
-        cmds = score(search(self.state, self.pred_opp, max_search_depth=3),
-                    self.state, self.weights)
+        if self.state.player.speed < 5:
+            self.search_depth = 4
+            self.opp_search_depth = 0
+        elif self.state.player.speed < 8:
+            self.search_depth = 3
+            self.opp_search_depth = 2
+        else:
+            self.search_depth = 3
+            self.opp_search_depth = 3
+
+        search_res = search(self.state, self.pred_opp,
+                            max_search_depth=self.search_depth)
+        cmds = score(search_res, self.state, self.weights, self.pred_opp)
         cmd = cmds[0]
 
         if cmd == Cmd.NOP:

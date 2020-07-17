@@ -116,22 +116,43 @@ def search(state, opp_pred, max_search_depth):
     return options
 
 # does a movement search from the opponent's point of view.
-def opp_search(state):
+def opp_search(state, max_search_depth=2):
     state = state.switch()
-    return search(state, lambda _: Cmd.ACCEL, max_search_depth=2)
+    return search(state, lambda _: Cmd.ACCEL, max_search_depth=max_search_depth)
 
 # scores, ranks and returns the best scoring option. scores are calculated
 # using the weights dict. state is the current state from which to score. if
 # any of the actions results in the game being finished only the speeds are
 # taken into account
-def score(options, cur_state, weights):
+def score(options, cur_state, weights, pred_opp=lambda s: Cmd.ACCEL):
     max_x = cur_state.map.global_map.max_x
 
     # check if any of actions result in a finish - we're in the endgame now
     if any(f.player.x >= max_x for _, f in options):
         key = lambda o: o[1].player.speed if o[1].player.x >= max_x else 0
     else:
-        key = lambda o: weights.score(cur_state, o[1])
+        # score is the sum of the final state and the next state score. next
+        # state score is added to reward cmd sequences that take benificial
+        # moves first
+        def key(o):
+            # never do nothing when speed=0, cause then you can end up in an
+            # endless loop
+            if cur_state.player.speed == 0 and o[0][0] == Cmd.NOP:
+                return float('-inf')
+
+            # TODO if they don't fix the bug where the current block is
+            # re-applied if you stand still on it, add a -inf score here if we
+            # end up on a wall and won't be able to get off of it
+
+            # TODO compare performance of scoring with and without next state
+            # scoring added
+
+            # scores by the final state after all the cmds
+            s = weights.score(cur_state, o[1])
+            # scores the next state given the first cmd
+            s += weights.score(cur_state, next_state(cur_state, o[0][0],
+                                                     pred_opp(cur_state)))
+            return s
 
     actions, _ = max(options, key=key)
     return actions
