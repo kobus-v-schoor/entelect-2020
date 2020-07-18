@@ -125,10 +125,10 @@ class Bot:
             self.opp_search_depth = 0
         elif self.state.player.speed < 8:
             self.search_depth = 3
-            self.opp_search_depth = 2
+            self.opp_search_depth = 1
         else:
             self.search_depth = 3
-            self.opp_search_depth = 3
+            self.opp_search_depth = 2
 
         search_res = search(self.state, self.pred_opp,
                             max_search_depth=self.search_depth)
@@ -136,6 +136,9 @@ class Bot:
         cmd = cmds[0]
 
         if cmd == Cmd.NOP:
+            # increase search depth for better opponent prediction in offensive
+            # search
+            self.opp_search_depth = 3
             cmd = offensive_search(self.state, cmds, self.pred_opp)
 
         # TODO update the global map if commands result in map changes for
