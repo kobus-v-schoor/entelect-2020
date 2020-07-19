@@ -32,14 +32,21 @@ SPEED_STEPS = [
     Speed.MAX_SPEED.value,
 ]
 
+MAX_SPEED_STEPS = [
+    Speed.BOOST_SPEED.value,
+    Speed.MAX_SPEED.value,
+    Speed.SPEED_3.value,
+    Speed.SPEED_2.value,
+    Speed.INIT_SPEED.value,
+    Speed.SPEED_1.value,
+    Speed.MIN_SPEED.value,
+]
+
 def max_speed(damage):
-    return SPEED_STEPS[::-1][max(0, min(damage-1, len(SPEED_STEPS)-1))]
+    return MAX_SPEED_STEPS[max(1, min(damage, 6))]
 
 def boost_speed(damage):
-    if damage:
-        return max_speed(damage)
-    else:
-        return Speed.BOOST_SPEED.value
+    return MAX_SPEED_STEPS[max(0, min(damage, 6))]
 
 def next_speed(speed, damage=0):
     m = max_speed(damage)
