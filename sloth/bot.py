@@ -5,6 +5,7 @@ from functools import lru_cache
 
 from sloth.enums import Cmd, Block
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
+from sloth.state import ns_filter
 from sloth.maps import Map, GlobalMap, clean_map
 from sloth.search import search, offensive_search, score, Weights, opp_search
 from sloth.ensemble import Ensemble
@@ -166,6 +167,11 @@ class Bot:
         return cmd
 
     def run(self):
+        self.calc_state = None
+        self.prev_cmd = Cmd.NOP
+        import os
+        if os.path.isfile('problems'):
+            os.remove('problems')
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
@@ -193,6 +199,20 @@ class Bot:
                 self.state.map.global_map[x, y].set_cybertruck()
                 self.ct_pos = (x, y)
 
+            if self.calc_state is None:
+                self.calc_state = self.state
+
+            if ns_filter(self.prev_cmd) != self.prev_cmd:
+                self.calc_state = self.state
+
+            self.state.player.score = 0
+            self.calc_state.player.score = 0
+            if self.state.player != self.calc_state.player:
+                with open('problems', 'a') as f:
+                    f.write(f'{round_num-1}->{round_num}: {self.prev_cmd}\n'
+                            f'c: {self.calc_state.player}\n'
+                            f'a: {self.state.player}\n\n')
+
             # check if game is finished
             if self.finished:
                 break
@@ -200,6 +220,8 @@ class Bot:
             # calculate next cmd
             cmd = self.calc_cmd()
             self.prev_cmd = cmd
+
+            self.calc_state = next_state(self.state, cmd, Cmd.NOP)
 
             # execute next cmd
             self.exec(round_num, cmd)
