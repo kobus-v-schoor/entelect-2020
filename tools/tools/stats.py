@@ -26,6 +26,9 @@ def match_stats(path):
         stats[player]['eff_speed'] = []
         # speed at start of turn
         stats[player]['turn_speed'] = []
+        stats[player]['damage'] = []
+
+        stats[player]['fixes_used'] = 0
 
         stats[player]['boosts_used'] = 0
         stats[player]['boost_runs'] = []
@@ -33,6 +36,7 @@ def match_stats(path):
         stats[player]['oils_used'] = 0
         stats[player]['lizards_used'] = 0
         stats[player]['tweets_used'] = 0
+        stats[player]['emps_used'] = 0
 
     endgame_path = os.path.join(path, last_round, 'endGameState.txt')
     with open(endgame_path, 'r') as f:
@@ -84,6 +88,8 @@ def match_stats(path):
             # turn speed
             stats[player]['turn_speed'].append(speed)
 
+            stats[player]['damage'].append(state['player']['damage'])
+
             # boosts run length
             if used_boost:
                 if not boosting:
@@ -98,6 +104,10 @@ def match_stats(path):
                 used_boost = True
                 used_boost_counter = 1
 
+            # fixes used
+            if cmd == 'FIX':
+                stats[player]['fixes_used'] += 1
+
             # oils used
             if cmd == 'USE_OIL':
                 stats[player]['oils_used'] += 1
@@ -110,6 +120,10 @@ def match_stats(path):
             if cmd.startswith('USE_TWEET'):
                 stats[player]['tweets_used'] += 1
 
+            # emps used
+            if cmd == 'USE_EMP':
+                stats[player]['emps_used'] += 1
+
     def avg(player, key):
         if stats[player][key]:
             stats[player][key] = (sum(stats[player][key]) /
@@ -118,7 +132,8 @@ def match_stats(path):
             stats[player][key] = None
 
     for player in players:
-        for key in ['exec_time', 'eff_speed', 'turn_speed', 'boost_runs']:
+        for key in ['exec_time', 'eff_speed', 'turn_speed', 'damage',
+                    'boost_runs']:
             avg(player, key)
 
     return stats
