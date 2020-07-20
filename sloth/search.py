@@ -135,11 +135,6 @@ def score(options, cur_state, weights, pred_opp=lambda s: Cmd.ACCEL):
         # state score is added to reward cmd sequences that take benificial
         # moves first
         def key(o):
-            # never do nothing when speed=0, cause then you can end up in an
-            # endless loop
-            if cur_state.player.speed == 0 and o[0][0] == Cmd.NOP:
-                return float('-inf')
-
             # TODO compare performance of scoring with and without next state
             # scoring added
 

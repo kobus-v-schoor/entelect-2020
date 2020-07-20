@@ -230,24 +230,25 @@ class StateTransition:
 def valid_actions(state):
     valid = []
 
-    if state.player.damage > 0:
-        valid.append(Cmd.FIX)
-    if (state.player.boosts > 0 and
-            state.player.speed < boost_speed(state.player.damage)):
-        valid.append(Cmd.BOOST)
-    if state.player.lizards > 0 and state.player.speed > 0:
-        valid.append(Cmd.LIZARD)
-
     if state.player.speed < max_speed(state.player.damage):
         valid.append(Cmd.ACCEL)
-    if state.player.y > state.map.min_y and state.player.speed > 0:
-        valid.append(Cmd.LEFT)
-    if state.player.y < state.map.max_y and state.player.speed > 0:
-        valid.append(Cmd.RIGHT)
 
-    if state.player.speed > Speed.MIN_SPEED.value:
+    if state.player.speed > 0:
+        valid.append(Cmd.NOP)
         valid.append(Cmd.DECEL)
-    valid.append(Cmd.NOP)
+
+        if state.player.y > state.map.min_y:
+            valid.append(Cmd.LEFT)
+        if state.player.y < state.map.max_y:
+            valid.append(Cmd.RIGHT)
+        if state.player.lizards > 0:
+            valid.append(Cmd.LIZARD)
+
+    if state.player.damage > 0:
+        valid.append(Cmd.FIX)
+    if state.player.boosts > 0:
+        if state.player.speed < boost_speed(state.player.damage):
+            valid.append(Cmd.BOOST)
 
     return valid
 

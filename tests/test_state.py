@@ -175,7 +175,10 @@ def setup_state():
 class TestValidActions:
     def test_nop(self):
         state = setup_state()
+        assert state.player.speed > 0
         assert Cmd.NOP in valid_actions(state)
+        state.player.speed = 0
+        assert Cmd.NOP not in valid_actions(state)
 
     def test_accel(self):
         state = setup_state()
@@ -192,18 +195,31 @@ class TestValidActions:
         assert Cmd.LEFT not in valid_actions(state)
         state.player.y = 2
         assert Cmd.LEFT in valid_actions(state)
+        state.player.speed = 0
+        assert Cmd.LEFT not in valid_actions(state)
 
     def test_right(self):
         state = setup_state()
         assert Cmd.RIGHT in valid_actions(state)
         state.player.y = 4
         assert Cmd.RIGHT not in valid_actions(state)
+        state.player.speed = 0
+        assert Cmd.RIGHT not in valid_actions(state)
 
     def test_boosts(self):
         state = setup_state()
+        state.player.boosts = 0
         assert Cmd.BOOST not in valid_actions(state)
         state.player.boosts = 1
         assert Cmd.BOOST in valid_actions(state)
+
+        # speed capped at 9, boosting won't help anyway
+        state.player.damage = 1
+        state.player.speed = Speed.MAX_SPEED.value
+        assert not state.player.boosting
+        assert Cmd.BOOST not in valid_actions(state)
+
+        # already boosting
         state.player.boosting = True
         state.player.speed = boost_speed(state.player.damage)
         assert Cmd.BOOST not in valid_actions(state)
@@ -213,13 +229,8 @@ class TestValidActions:
         assert Cmd.LIZARD not in valid_actions(state)
         state.player.lizards = 1
         assert Cmd.LIZARD in valid_actions(state)
-
-    # add back when next state accepts offensive actions
-    # def test_emp(self):
-    #     state = setup_state()
-    #     assert Cmd.EMP not in valid_actions(state)
-    #     state.player.emps = 1
-    #     assert Cmd.EMP in valid_actions(state)
+        state.player.speed = 0
+        assert Cmd.LIZARD not in valid_actions(state)
 
     def test_fix(self):
         state = setup_state()
