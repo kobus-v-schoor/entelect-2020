@@ -348,19 +348,12 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
         traj_b.y_off = 0
 
 def gen_path(state_map, player, traj, lizarding):
-    # FIXME workaround for bug in game engine where if you stand still your
-    # current block is applied again
-
     # didn't move at all, so no path to generate
-    # if traj.x_off == traj.y_off == 0:
-    #     return
+    if traj.x_off == traj.y_off == 0:
+        return
 
     if not lizarding:
-        # FIXME (same bug as above)
-        if traj.x_off:
-            start = player.x if traj.y_off else player.x + 1
-        else:
-            start = player.x
+        start = player.x if traj.y_off else player.x + 1
     else:
         start = player.x + traj.x_off
     end = player.x + traj.x_off

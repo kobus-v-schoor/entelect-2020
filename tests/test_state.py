@@ -470,25 +470,6 @@ class TestNextState:
                 assert cur.speed == prev.speed == 0
                 assert cur.damage == prev.damage
 
-    # FIXME workaround for bug where in game engine where if you fix/stand
-    # still on a special block that block is applied again
-    def test_fix_on_badblock(self):
-        state = setup_state()
-        cmd = Cmd.FIX
-
-        for player in [state.player, state.opponent]:
-            state.map[player.x, player.y] = Block.MUD
-            player.damage = 2
-
-        nstate = next_state(state, cmd, cmd)
-        for prev, cur in zip([state.player, state.opponent],
-                             [nstate.player, nstate.opponent]):
-            assert cur.y == prev.y
-            assert cur.x == prev.x
-            assert cur.speed == prev_speed(prev.speed)
-            assert prev.damage == 2
-            assert cur.damage == 1
-
     def test_hit_mud(self):
         state = setup_state()
         cmd = Cmd.NOP

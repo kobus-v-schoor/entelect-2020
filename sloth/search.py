@@ -140,16 +140,6 @@ def score(options, cur_state, weights, pred_opp=lambda s: Cmd.ACCEL):
             if cur_state.player.speed == 0 and o[0][0] == Cmd.NOP:
                 return float('-inf')
 
-
-            # TODO if they don't fix the bug where the current block is
-            # re-applied if you stand still on it, add a -inf score here if we
-            # end up on a wall and won't be able to get off of it
-
-            # FIXME workaround for land on wall and fix endless loop
-            cur_block = cur_state.map[cur_state.player.x, cur_state.player.y]
-            if o[0][0] == Cmd.FIX and cur_block == Block.WALL:
-                return float('-inf')
-
             # TODO compare performance of scoring with and without next state
             # scoring added
 
