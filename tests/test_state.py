@@ -364,10 +364,32 @@ class TestNextState:
                     assert cur.boosting == False
                     assert cur.speed == Speed.MAX_SPEED.value
 
+    def test_decel_boost_cancel(self):
+        state = setup_state()
+        state.player.boosts = 1
+        state.opponent.boosts = 1
+
+        # test deceleration cancels boost
+        nstate = next_state(state, Cmd.BOOST, Cmd.BOOST)
+        assert nstate.player.boosting
+        assert nstate.opponent.boosting
+
+        nnstate = next_state(nstate, Cmd.DECEL, Cmd.DECEL)
+        for player in [nnstate.player, nnstate.opponent]:
+            assert not player.boosting
+            assert player.boost_counter == 0
+            assert player.speed == Speed.MAX_SPEED.value
+
+    def test_hit_mud_boost_cancel(self):
+        state = setup_state()
+        state.player.boosts = 1
+        state.opponent.boosts = 1
+
+        # test hit mud in first boost round
         for player in [state.player, state.opponent]:
             state.map[player.x + 1, player.y] = Block.MUD
 
-        nstate = next_state(state, cmd, cmd)
+        nstate = next_state(state, Cmd.BOOST, Cmd.BOOST)
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
             assert cur.y == prev.y
@@ -375,6 +397,28 @@ class TestNextState:
             assert cur.speed == Speed.MAX_SPEED.value
             assert cur.boosts - prev.boosts == -1
             assert cur.boosting == False
+
+    def test_hit_mud_next_round_boost_cancel(self):
+        state = setup_state()
+        state.player.boosts = 1
+        state.opponent.boosts = 1
+
+        state = next_state(state, Cmd.BOOST, Cmd.BOOST)
+        assert state.player.boosting
+        assert state.opponent.boosting
+
+        # test hit mud in second boost round
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = Block.MUD
+
+        nstate = next_state(state, Cmd.NOP, Cmd.NOP)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert cur.y == prev.y
+            assert cur.x - prev.x == Speed.BOOST_SPEED.value
+            assert cur.speed == Speed.MAX_SPEED.value
+            assert cur.boosting == False
+            assert cur.boost_counter == 0
 
     def test_lizard(self):
         state = setup_state()

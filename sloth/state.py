@@ -419,6 +419,12 @@ def cap_speed(player):
     if not player.boosting:
         player.speed = min(max_speed(player.damage), player.speed)
 
+# checks that when a player decelerates their boosting is canceled
+def decel_boost_cancel(player, cmd):
+    if player.boosting and cmd == Cmd.DECEL:
+        player.boosting = False
+        player.boost_counter = 0
+
 def ns_filter(cmd):
     if cmd in [Cmd.OIL, Cmd.TWEET, Cmd.EMP]:
         return Cmd.NOP
@@ -481,8 +487,9 @@ def next_state(state, cmd, opp_cmd):
     player_mods.apply(state.player)
     opp_mods.apply(state.opponent)
 
-    ## check if boosting was cancelled
-    # now done in path mod calculation
+    ## check if boosting was cancelled by decelerating
+    decel_boost_cancel(state.player, cmd)
+    decel_boost_cancel(state.opponent, opp_cmd)
 
     ## keep track of cybertruck collisions
     check_cybertrucks(state, consumed)
