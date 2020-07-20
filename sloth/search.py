@@ -18,6 +18,8 @@ class Weights:
 
             self.damage = raw_weights.get('damage', 0)
             self.player_score = raw_weights.get('score', 0)
+
+            self.next_state = raw_weights.get('next_state', 0)
         else:
             (self.pos,
              self.speed,
@@ -30,6 +32,8 @@ class Weights:
 
              self.damage,
              self.player_score) = raw_weights
+
+            self.next_state = 0
 
     # takes a from_state and to_state and calculates a numerical score
     def score(self, from_state, to_state):
@@ -135,14 +139,12 @@ def score(options, cur_state, weights, pred_opp=lambda s: Cmd.ACCEL):
         # state score is added to reward cmd sequences that take benificial
         # moves first
         def key(o):
-            # TODO compare performance of scoring with and without next state
-            # scoring added
-
             # scores by the final state after all the cmds
             s = weights.score(cur_state, o[1])
             # scores the next state given the first cmd
-            s += weights.score(cur_state, next_state(cur_state, o[0][0],
-                                                     pred_opp(cur_state)))
+            if weights.next_state:
+                nstate = next_state(cur_state, o[0][0], pred_opp(cur_state))
+                s += weights.next_state * weights.score(cur_state, nstate)
             return s
 
     actions, _ = max(options, key=key)
