@@ -917,13 +917,23 @@ class TestNextState:
 
         for player in [state.player, state.opponent]:
             state.map[player.x + 1, player.y] = block
+            player.damage = 3
+
+        nstate = next_state(state, cmd, cmd)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.damage == 3
+            assert cur.damage == 5
+
+        for player in [state.player, state.opponent]:
+            state.map[player.x + 1, player.y] = block
             player.damage = 4
 
         nstate = next_state(state, cmd, cmd)
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
             assert prev.damage == 4
-            assert cur.damage == 6
+            assert cur.damage == 5
 
         for player in [state.player, state.opponent]:
             state.map[player.x + 1, player.y] = block
@@ -933,17 +943,7 @@ class TestNextState:
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
             assert prev.damage == 5
-            assert cur.damage == 6
-
-        for player in [state.player, state.opponent]:
-            state.map[player.x + 1, player.y] = block
-            player.damage = 6
-
-        nstate = next_state(state, cmd, cmd)
-        for prev, cur in zip([state.player, state.opponent],
-                             [nstate.player, nstate.opponent]):
-            assert prev.damage == 6
-            assert cur.damage == 6
+            assert cur.damage == 5
 
     def test_damage_speed_limit(self):
         state = setup_state()
