@@ -117,6 +117,8 @@ class Bot:
 
         with open('act_cmd', 'a') as f:
             f.write(f'{round_num} {Cmd(ns_filter(cmd))}\n')
+        with open('opp_pred', 'a') as f:
+            f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
 
     # predicts the opponent's move based on the given state
     # NOTE only predicts movement and not offensive actions
@@ -182,6 +184,8 @@ class Bot:
             os.remove('opp_calc')
         if os.path.isfile('act_cmd'):
             os.remove('act_cmd')
+        if os.path.isfile('opp_pred'):
+            os.remove('opp_pred')
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
