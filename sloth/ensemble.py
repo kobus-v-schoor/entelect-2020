@@ -11,7 +11,7 @@ class Ensemble:
 
     def resample(self):
         sample_range = 2 ** -self.sample_count
-        option_count = 3
+        option_count = 4
 
         offsets = [i/(option_count-1) for i in range(option_count)]
         offsets = [o*sample_range - (sample_range/2) for o in offsets]
