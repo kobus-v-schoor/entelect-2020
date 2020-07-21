@@ -210,7 +210,7 @@ class PathMods:
         player.emps += self.emps
 
         player.score += self.score
-        player.damage = min(player.damage + self.damage, 6)
+        player.damage = min(player.damage + self.damage, 5)
 
         if player.boosting and self.penalties > 0:
             player.boosting = False
