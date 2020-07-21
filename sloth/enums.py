@@ -79,7 +79,7 @@ class Cmd:
     def __init__(self, cmd, pos=None):
         if type(cmd) is Cmd.CmdEnum:
             self.cmd = cmd
-        elif type(val) is Cmd:
+        elif type(cmd) is Cmd:
             self.cmd = cmd.cmd
         else:
             self.cmd = CmdEnum(cmd)
