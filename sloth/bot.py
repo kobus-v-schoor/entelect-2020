@@ -104,6 +104,9 @@ class Bot:
             trans.from_state.opponent.transfer_mods(trans.to_state.opponent)
             return
 
+        with open('opp_calc', 'a') as f:
+            f.write(f'{trans.round_num} {Cmd(cmd)}\n')
+
         # keep track of opponent's mods
         calc_ns = next_state(trans.from_state, ns_filter(trans.cmd), cmd)
         opp = trans.to_state.opponent
@@ -124,6 +127,9 @@ class Bot:
         if not type(cmd) is Cmd:
             cmd = Cmd(cmd)
         print(f'C;{round_num};{cmd}')
+
+        with open('act_cmd', 'a') as f:
+            f.write(f'{round_num} {Cmd(ns_filter(cmd))}\n')
 
     # just a thin wrapper to include the search depth
     def pred_opp(self, state):
@@ -186,6 +192,10 @@ class Bot:
         import os
         if os.path.isfile('problems'):
             os.remove('problems')
+        if os.path.isfile('opp_calc'):
+            os.remove('opp_calc')
+        if os.path.isfile('act_cmd'):
+            os.remove('act_cmd')
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
