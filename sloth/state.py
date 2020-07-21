@@ -515,9 +515,37 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x_off = fx - x
     y_off = fy - y
 
-    for opp_cmd in valid_actions(from_state.switch()):
-        ns = next_state(from_state, cmd, opp_cmd)
-        if (ns.opponent.x,ns.opponent.y,ns.opponent.speed) == (fx,fy,fspeed):
-            return opp_cmd
+    if y_off:
+        return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
+
+    if x_off == y_off == 0 and speed > 0:
+        return Cmd.FIX
+
+    if x_off > speed:
+        if x_off == next_speed(speed):
+            return Cmd.ACCEL
+        else:
+            return Cmd.BOOST
+
+    if x_off == prev_speed(speed):
+        return Cmd.DECEL
+
+    if x_off == speed:
+        _y = fy
+        _speed = speed
+        start_x = x if y_off else x + 1
+
+        for _x in range(start_x, fx + 1):
+            block = from_state.map[_x, _y]
+
+            if block == Block.MUD:
+                _speed = prev_speed(_speed)
+            elif block == Block.OIL_SPILL:
+                _speed = prev_speed(_speed)
+            elif block == Block.WALL:
+                _speed = Speed.SPEED_1.value
+
+        _speed = max(Speed.SPEED_1.value, _speed)
+        return Cmd.LIZARD if _speed < fspeed else Cmd.NOP
 
     return None
