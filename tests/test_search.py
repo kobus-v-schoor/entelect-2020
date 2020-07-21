@@ -207,62 +207,62 @@ class TestOffensiveSearch:
 
         assert offensive_search(state, pred_opp=pred) == match
 
-    def test_emp_no_emp(self):
-        state = setup_state()
-        state.player.emps = 0
+    # def test_emp_no_emp(self):
+    #     state = setup_state()
+    #     state.player.emps = 0
 
-        state.player.x = 100
-        state.player.y = 2
+    #     state.player.x = 100
+    #     state.player.y = 2
 
-        state.opponent.x = 110
-        state.opponent.y = 2
+    #     state.opponent.x = 110
+    #     state.opponent.y = 2
 
-        assert offensive_search(state) == Cmd.NOP
+    #     assert offensive_search(state) == Cmd.NOP
 
-    def test_emp_opp_behind(self):
-        state = setup_state()
-        state.player.emps = 1
+    # def test_emp_opp_behind(self):
+    #     state = setup_state()
+    #     state.player.emps = 1
 
-        # behind
-        state.player.x = 100
-        state.player.y = 2
+    #     # behind
+    #     state.player.x = 100
+    #     state.player.y = 2
 
-        state.opponent.x = 90
-        state.opponent.y = 2
+    #     state.opponent.x = 90
+    #     state.opponent.y = 2
 
-        assert offensive_search(state) == Cmd.NOP
+    #     assert offensive_search(state) == Cmd.NOP
 
-        # same x
-        state.opponent.x = 100
-        state.opponent.y = 1
+    #     # same x
+    #     state.opponent.x = 100
+    #     state.opponent.y = 1
 
-        assert offensive_search(state) == Cmd.NOP
+    #     assert offensive_search(state) == Cmd.NOP
 
-    def test_emp_samelane(self):
-        state = setup_state()
-        state.player.emps = 1
+    # def test_emp_samelane(self):
+    #     state = setup_state()
+    #     state.player.emps = 1
 
-        state.player.x = 100
-        state.player.y = 2
+    #     state.player.x = 100
+    #     state.player.y = 2
 
-        state.opponent.x = 150
-        state.opponent.y = 2
+    #     state.opponent.x = 150
+    #     state.opponent.y = 2
 
-        assert offensive_search(state) == Cmd.EMP
+    #     assert offensive_search(state) == Cmd.EMP
 
-    def test_emp_min_max_lanes(self):
-        state = setup_state()
-        state.player.emps = 1
+    # def test_emp_min_max_lanes(self):
+    #     state = setup_state()
+    #     state.player.emps = 1
 
-        state.player.x = 100
-        state.player.y = 2
+    #     state.player.x = 100
+    #     state.player.y = 2
 
-        state.opponent.x = 150
-        state.opponent.y = 1
+    #     state.opponent.x = 150
+    #     state.opponent.y = 1
 
-        assert offensive_search(state) == Cmd.EMP
+    #     assert offensive_search(state) == Cmd.EMP
 
-        state.player.y = 3
-        state.opponent.y = 4
+    #     state.player.y = 3
+    #     state.opponent.y = 4
 
-        assert offensive_search(state) == Cmd.EMP
+    #     assert offensive_search(state) == Cmd.EMP
