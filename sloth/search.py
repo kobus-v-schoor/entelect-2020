@@ -210,7 +210,8 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
     ## emp logic
-    if state.player.emps > 0 and state.opponent.x > state.player.x:
+    if False:
+    # if state.player.emps > 0 and state.opponent.x > state.player.x:
         # opponent in the same lane as we are
         # will definitely hit
         if state.opponent.y == state.player.y:
