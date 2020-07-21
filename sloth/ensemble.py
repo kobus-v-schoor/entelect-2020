@@ -4,15 +4,26 @@ import numpy as np
 from sloth.search import Weights, opp_search, score
 
 class Ensemble:
-    def __init__(self, size):
-        weight_len = Weights.len()
-        # weight_options = [0, 0.25, 0.5, 0.75, 1]
-        weight_options = [0, 0.25, 0.75, 1]
+    def __init__(self):
+        self.sample_count = 0
+        self.centre = [1 for _ in range(Weights.len())]
+        self.resample()
 
-        self.weights = (np.array([a for a in itertools.product(weight_options,
-            repeat=weight_len)])).transpose()
+    def resample(self):
+        sample_range = 2 ** -self.sample_count
+        option_count = 3
 
-        self.scores = [0 for _ in range(self.weights.shape[1])]
+        offsets = [i/(option_count-1) for i in range(option_count)]
+        offsets = [o*sample_range - (sample_range/2) for o in offsets]
+
+        options = []
+
+        for c in self.centre:
+            options.append([c + o for o in offsets])
+
+        self.weights = np.array(list(itertools.product(*options))).transpose()
+        self.scores = [0 for _ in range(self.weights.shape[-1])]
+        self.sample_count += 1
 
     def update_scores(self, state, wanted_cmd):
         # do search as opponent
@@ -35,5 +46,7 @@ class Ensemble:
                 zip(self.scores, actions)]
 
     def best_weights(self):
-        best = self.weights.T[max(enumerate(self.scores), key=lambda s:s[1])[0]]
-        return Weights(best)
+        # find the best performing weights and save it as the next centre
+        best_idx = max(enumerate(self.scores), key=lambda s:s[1])[0]
+        self.centre = self.weights.T[best_idx]
+        return Weights(self.centre)

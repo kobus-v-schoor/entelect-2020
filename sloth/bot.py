@@ -26,7 +26,8 @@ class Bot:
             self.weights = Weights(json.load(f))
         self.opp_weights = self.weights
 
-        self.ensemble = Ensemble(size=1000)
+        self.ensemble = Ensemble()
+        self.last_resample = 0
 
         self.search_depth = 3
         self.opp_search_depth = 2
@@ -116,6 +117,12 @@ class Bot:
         # score ensemble and choose new opponent weights
         self.ensemble.update_scores(trans.from_state, cmd)
         self.opp_weights = self.ensemble.best_weights()
+
+        self.last_resample += 1
+        # resample ensemble every x rounds
+        if self.last_resample >= 50:
+            self.ensemble.resample()
+            self.last_resample = 0
 
         with open('opp_state', 'a') as f:
             f.write(str(trans.round_num+1) + ' ' + str({

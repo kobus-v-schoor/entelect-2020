@@ -76,6 +76,9 @@ class Weights:
             to_state.player.score - from_state.player.score,
         ]
 
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
     def __repr__(self):
         return str(vars(self))
 
