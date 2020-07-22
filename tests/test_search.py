@@ -207,6 +207,7 @@ class TestOffensiveSearch:
 
         assert offensive_search(state, pred_opp=pred) == match
 
+    # FIXME re-enable emps when engine is fixed
     # def test_emp_no_emp(self):
     #     state = setup_state()
     #     state.player.emps = 0

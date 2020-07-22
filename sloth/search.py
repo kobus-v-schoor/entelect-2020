@@ -209,6 +209,7 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
 
         actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
+    # FIXME re-enable emps when engine is fixed
     ## emp logic
     if False:
     # if state.player.emps > 0 and state.opponent.x > state.player.x:
