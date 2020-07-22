@@ -117,8 +117,9 @@ class Bot:
 
         with open('act_cmd', 'a') as f:
             f.write(f'{round_num} {Cmd(ns_filter(cmd))}\n')
-        with open('opp_pred', 'a') as f:
-            f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
+        if self.state.opponent.x < self.state.map.max_x:
+            with open('opp_pred', 'a') as f:
+                f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
 
     # predicts the opponent's move based on the given state
     # NOTE only predicts movement and not offensive actions
