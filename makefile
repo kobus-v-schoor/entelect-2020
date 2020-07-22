@@ -9,6 +9,7 @@ clean:
 	rm -fvr sloth/bot.log tests/bot.log sloth/rounds
 	rm -fvr bot.zip tools.zip
 	rm -fvr profile.prof
+	rm -fv sloth/act_cmd sloth/opp_calc sloth/opp_pred
 	find -name __pycache__ -exec rm -rv {} +
 
 run:

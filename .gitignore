@@ -9,3 +9,7 @@ __pycache__
 
 weights
 old-weights
+
+act_cmd
+opp_calc
+opp_pred
