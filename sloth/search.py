@@ -33,6 +33,7 @@ class Weights:
              self.damage,
              self.player_score) = raw_weights
 
+            self.damage *= -1
             self.next_state = 0
 
     # takes a from_state and to_state and calculates a numerical score
@@ -71,7 +72,7 @@ class Weights:
             to_state.player.tweets - from_state.player.tweets,
             to_state.player.emps - from_state.player.emps,
 
-            to_state.player.damage - from_state.player.damage,
+            -1 * (to_state.player.damage - from_state.player.damage),
             to_state.player.score - from_state.player.score,
         ]
 
