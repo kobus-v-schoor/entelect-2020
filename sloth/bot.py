@@ -130,8 +130,9 @@ class Bot:
 
         with open('act_cmd', 'a') as f:
             f.write(f'{round_num} {Cmd(ns_filter(cmd))}\n')
-        with open('opp_pred', 'a') as f:
-            f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
+        if self.state.opponent.x < self.state.map.max_x:
+            with open('opp_pred', 'a') as f:
+                f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
 
     # just a thin wrapper to include the search depth
     def pred_opp(self, state):
