@@ -448,7 +448,7 @@ def next_state(state, cmd, opp_cmd):
 
     ## check fixes
     check_fix(state.player, cmd)
-    check_fix(state.opponent, cmd)
+    check_fix(state.opponent, opp_cmd)
 
     ## check for powerups that were used and consume them
     track_powerups(state.player, cmd)
