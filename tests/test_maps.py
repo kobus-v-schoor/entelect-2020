@@ -29,9 +29,7 @@ class TestBlockOverlay:
 
         block.set_cybertruck()
         assert block == Block.CYBERTRUCK
-
-        block.unset_cybertruck()
-        assert block == Block.EMPTY
+        assert block.get_underlay() == Block.EMPTY
 
 class TestGlobalMap:
     def setup_map(self):
@@ -146,7 +144,6 @@ class TestMap:
             }]
         ])
 
-        assert (1, 1) in omap.view
         assert omap[1, 1] == Block.CYBERTRUCK
-        omap[1, 1].unset_cybertruck()
+        omap[1, 1] = omap[1, 1].get_underlay()
         assert omap[1, 1] == Block.MUD

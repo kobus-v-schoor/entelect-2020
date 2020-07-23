@@ -413,7 +413,7 @@ def check_cybertrucks(state, consumed):
     ## remove cybertrucks that were crashed into
     for pos in consumed['cybertrucks']:
         x, y = pos
-        state.map[x, y].unset_cybertruck()
+        state.map[x, y] = state.map[x, y].get_underlay()
 
 # caps the player's speed to its maximum allowable value given their damage
 def cap_speed(player):

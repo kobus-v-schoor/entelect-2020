@@ -19,13 +19,12 @@ class BlockOverlay:
     def set_cybertruck(self):
         self.overlay = Block.CYBERTRUCK
 
-    def unset_cybertruck(self):
-        if self.overlay == Block.CYBERTRUCK:
-            self.overlay = None
-
     def get_block(self):
         if self.overlay is not None:
             return self.overlay
+        return self.block
+
+    def get_underlay(self):
         return self.block
 
     def __hash__(self):
@@ -100,7 +99,6 @@ class Map:
 
             if w.get('isOccupiedByCyberTruck', False):
                 global_map[x, y].set_cybertruck()
-                self.view[(x, y)] = global_map[x, y]
 
             self.min_x = min(x, self.min_x)
             self.min_y = min(y, self.min_y)
