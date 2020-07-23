@@ -1,3 +1,5 @@
+from pytest import approx
+
 from sloth.ensemble import Ensemble
 from sloth.search import Weights
 
@@ -7,10 +9,10 @@ class TestEnsemble:
 
         assert ens.centre == [1 for _ in range(Weights.len())]
         assert not any((s != 0 for s in ens.scores))
-        assert ens.weights.mean() == 1
-        assert ens.weights.max() == 1.5
-        assert ens.weights.min() == 0.5
-        assert ens.sample_count == 1
+        assert ens.weights.mean() == approx(1)
+        assert ens.weights.max() == approx(1.5)
+        assert ens.weights.min() == approx(0.5)
+        assert ens.sample_count == approx(1)
 
     def test_resample(self):
         ens = Ensemble()
@@ -24,9 +26,9 @@ class TestEnsemble:
         assert ens.sample_count == 2
         assert not any((s != 0 for s in ens.scores))
         for i, w in enumerate(weights):
-            assert ens.weights.T[:, i].min() == weights[i] - 0.25
-            assert ens.weights.T[:, i].max() == weights[i] + 0.25
-            assert ens.weights.T[:, i].mean() == weights[i]
+            assert ens.weights.T[:, i].min() == approx(weights[i] - 0.25)
+            assert ens.weights.T[:, i].max() == approx(weights[i] + 0.25)
+            assert ens.weights.T[:, i].mean() == approx(weights[i])
 
     def test_len(self):
         assert Weights.len() == 9
