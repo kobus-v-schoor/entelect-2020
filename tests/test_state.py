@@ -725,6 +725,33 @@ class TestNextState:
             assert prev.damage == 0
             assert cur.damage == 2
 
+    # FIXME remove when turned onto cybertruck is fixed in engine
+    def test_cybertruck_turn_bug(self):
+        state = setup_state()
+
+        state.player.x = 1
+        state.opponent.x = 100
+
+        for player in [state.player, state.opponent]:
+            player.y = 2
+            player.speed = 9
+            state.map[player.x, player.y - 1].set_cybertruck()
+            state.map[player.x, player.y + 1].set_cybertruck()
+
+        nstate = next_state(state, Cmd.LEFT, Cmd.LEFT)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.speed == cur.speed
+            assert cur.x > prev.x
+            assert cur.y == prev.y - 1
+
+        nstate = next_state(state, Cmd.RIGHT, Cmd.RIGHT)
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+            assert prev.speed == cur.speed
+            assert cur.x > prev.x
+            assert cur.y == prev.y + 1
+
     def test_hit_cybertruck_both_samelane(self):
         state = setup_state()
 
