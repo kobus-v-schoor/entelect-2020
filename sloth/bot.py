@@ -78,6 +78,14 @@ class Bot:
                 else:
                     break
 
+            with open('own_state', 'a') as f:
+                f.write(str(round_num) + ' ' + str({
+                    'damage': self.state.player.damage,
+                    'boosts': self.state.player.boosts,
+                    'lizards': self.state.player.lizards,
+                }) + '\n')
+
+
     def process_opp_action(self, trans):
         # clean map of stuff that wasn't there when the opponent was here
         if trans.from_state.opponent.x >= trans.from_state.player.x:
@@ -108,6 +116,13 @@ class Bot:
         # score ensemble and choose new opponent weights
         self.ensemble.update_scores(trans.from_state, cmd)
         self.opp_weights = self.ensemble.best_weights()
+
+        with open('opp_state', 'a') as f:
+            f.write(str(trans.round_num+1) + ' ' + str({
+                'damage': trans.to_state.opponent.damage,
+                'boosts': trans.to_state.opponent.boosts,
+                'lizards': trans.to_state.opponent.lizards,
+            }) + '\n')
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
@@ -187,6 +202,10 @@ class Bot:
             os.remove('act_cmd')
         if os.path.isfile('opp_pred'):
             os.remove('opp_pred')
+        if os.path.isfile('opp_state'):
+            os.remove('opp_state')
+        if os.path.isfile('own_state'):
+            os.remove('own_state')
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
