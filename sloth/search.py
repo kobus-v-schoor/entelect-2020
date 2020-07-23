@@ -205,7 +205,12 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         # TODO somehow try and check if we might not be accidentally making
         # trouble for ourselves by placing the ct in front of us
         nstate = next_state(state, cmds[0], pred_opp(state))
-        nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
+
+        # if were on the very last round, assume our next move is going to be
+        # NOP (we'll be past the finish line)
+        ncmd = cmds[1] if len(cmds) >= 2 else Cmd.NOP
+
+        nnstate = next_state(nstate, ncmd, pred_opp(nstate))
         pos = (nstate.opponent.x + 1, nnstate.opponent.y)
 
         actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
