@@ -132,6 +132,7 @@ def read_state(cur_round, next_round, player):
     info = {}
     info['name'] = player
     info['id'] = cur_state['player']['id']
+    info['score'] = cur_state['player']['score']
     info['speed'] = cur_state['player']['speed']
     info['state'] = cur_state['player']['state']
     info['damage'] = cur_state['player'].get('damage', 0)
@@ -168,7 +169,8 @@ def read_state(cur_round, next_round, player):
 def render(state, frame_prog):
     add = lambda line: framebuffer.append(line)
 
-    add(f"{state['info']['name']} (id: {state['info']['id']})")
+    add(f"{state['info']['name']} (id: {state['info']['id']}, score: "
+        f"{state['info']['score']})")
 
     pid = state['info']['id']
     start_pos = state['start'][pid]
@@ -181,7 +183,11 @@ def render(state, frame_prog):
 
     add(f"cmd: {state['cmd']['cmd']}, exec time: {state['cmd']['exec_time']}")
 
-    add(f"state: {state['info']['state']}")
+    sstr = str(state['info']['state'])
+    bstr = (f"boosting: {state['info']['boosting']}, boost-counter: " +
+            f"{state['info']['boostcount']}")
+
+    add(f"state: {sstr}, {bstr}")
     powerups = state['info']['powerups']
     powerups = ', '.join([f'{k}: {powerups[k]}' for k in powerups])
     add(f'powerups: {powerups}')

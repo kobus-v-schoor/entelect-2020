@@ -258,6 +258,7 @@ def count_boosting(player):
         # boost ran out
         if player.boost_counter == 0:
             player.boosting = False
+            # FIXME restore to damage capped maximum speed when fixed in engine
             player.speed = Speed.MAX_SPEED.value
 
 def calc_trajectory(player, cmd):
@@ -370,6 +371,10 @@ def resolve_cybertruck_collisions(state_map, player, traj, lizarding):
     path_mods = PathMods()
 
     for x, y in gen_path(state_map, player, traj, lizarding):
+        # FIXME workaround for turning onto cybertruck bug in engine
+        if x == player.x:
+            continue
+
         block = state_map[x, y]
 
         if block == Block.CYBERTRUCK:
