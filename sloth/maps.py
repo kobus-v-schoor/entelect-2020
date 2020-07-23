@@ -6,11 +6,13 @@ class BlockOverlay:
     def __init__(self, block):
         if type(block) is Block:
             self.block = block
+            self.overlay = None
         elif type(block) is BlockOverlay:
             self.block = block.block
+            self.overlay = block.overlay
         else:
             self.block = Block(block)
-        self.overlay = None
+            self.overlay = None
 
     def bad_block(self):
         return self.get_block() in [Block.MUD, Block.WALL, Block.OIL_SPILL,
@@ -156,3 +158,17 @@ class Map:
 
     def __str__(self):
         return str(vars(self))
+
+# removes all temporary terrain in front of opponent
+def clean_map(state, from_x, to_x):
+    for y in range(state.map.min_y, state.map.max_y + 1):
+        for x in range(from_x, to_x + 1):
+            block = state.map.global_map[x, y]
+
+            # remove any blocks that wasn't here when to opponent was here
+            if block == Block.OIL_SPILL:
+                block = Block.EMPTY # just a guess, we can't do any better
+            elif block == Block.CYBERTRUCK:
+                block = block.get_underlay()
+
+            state.map[x, y] = block

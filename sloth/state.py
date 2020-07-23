@@ -512,6 +512,11 @@ def next_state(state, cmd, opp_cmd):
 # offensive cmds like oil and tweeting will be calculated as NOP
 def calc_opp_cmd(cmd, from_state, to_state):
     x, y = from_state.opponent.x, from_state.opponent.y
+    # TODO if emp'ed opponent use the proper speed here
+
+    # FIXME use proper max speed
+    if from_state.opponent.boost_counter == 1:
+        from_state.opponent.speed = Speed.MAX_SPEED.value
     speed = from_state.opponent.speed
 
     fx, fy = to_state.opponent.x, to_state.opponent.y
@@ -552,5 +557,11 @@ def calc_opp_cmd(cmd, from_state, to_state):
 
         _speed = max(Speed.SPEED_1.value, _speed)
         return Cmd.LIZARD if _speed < fspeed else Cmd.NOP
+
+    for opp_cmd in valid_actions(from_state.switch()):
+        nstate = next_state(from_state, cmd, opp_cmd)
+        if ((nstate.opponent.x, nstate.opponent.y, nstate.opponent.speed) ==
+                (fx, fy, fspeed)):
+            return opp_cmd
 
     return None

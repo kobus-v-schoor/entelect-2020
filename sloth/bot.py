@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from sloth.enums import Cmd
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
-from sloth.maps import Map, GlobalMap
+from sloth.maps import Map, GlobalMap, clean_map
 from sloth.search import search, offensive_search, score, Weights, opp_search
 from sloth.ensemble import Ensemble
 from sloth.log import log
@@ -76,6 +76,10 @@ class Bot:
                     break
 
     def process_opp_action(self, trans):
+        # clean map of stuff that wasn't there when the opponent was here
+        clean_map(trans.from_state, trans.from_state.opponent.x,
+                  trans.to_state.opponent.x)
+
         # get opponent's cmd
         cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
         if cmd is None:
