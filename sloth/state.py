@@ -465,7 +465,7 @@ def next_state(state, cmd, opp_cmd):
                                                       cmd == Cmd.LIZARD)
     opp_cyber_mods = resolve_cybertruck_collisions(state.map, state.opponent,
                                                       opp_traj,
-                                                      cmd == Cmd.LIZARD)
+                                                      opp_cmd == Cmd.LIZARD)
 
     player_cyber_mods.apply(state.player)
     opp_cyber_mods.apply(state.opponent)
@@ -525,14 +525,20 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x_off = fx - x
     y_off = fy - y
 
+    for opp_cmd in valid_actions(from_state.switch()):
+        nstate = next_state(from_state, cmd, opp_cmd)
+        if ((nstate.opponent.x, nstate.opponent.y, nstate.opponent.speed) ==
+                (fx, fy, fspeed)):
+            return opp_cmd
+
     if y_off:
         return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
 
-    if x_off == y_off == 0 and speed > 0:
+    if x_off == y_off == 0 and fspeed == speed:
         return Cmd.FIX
 
     if x_off > speed:
-        if x_off == next_speed(speed):
+        if x_off <= next_speed(speed):
             return Cmd.ACCEL
         else:
             return Cmd.BOOST
@@ -558,10 +564,5 @@ def calc_opp_cmd(cmd, from_state, to_state):
         _speed = max(Speed.SPEED_1.value, _speed)
         return Cmd.LIZARD if _speed < fspeed else Cmd.NOP
 
-    for opp_cmd in valid_actions(from_state.switch()):
-        nstate = next_state(from_state, cmd, opp_cmd)
-        if ((nstate.opponent.x, nstate.opponent.y, nstate.opponent.speed) ==
-                (fx, fy, fspeed)):
-            return opp_cmd
 
     return None

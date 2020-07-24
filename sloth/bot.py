@@ -3,7 +3,7 @@ import os
 from collections import deque
 from functools import lru_cache
 
-from sloth.enums import Cmd
+from sloth.enums import Cmd, Block
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
 from sloth.maps import Map, GlobalMap, clean_map
 from sloth.search import search, offensive_search, score, Weights, opp_search
@@ -77,18 +77,25 @@ class Bot:
 
     def process_opp_action(self, trans):
         # clean map of stuff that wasn't there when the opponent was here
-        clean_map(trans.from_state, trans.from_state.opponent.x,
-                  trans.to_state.opponent.x)
+        if trans.from_state.opponent.x > trans.from_state.player.x:
+            clean_map(trans.from_state, trans.from_state.opponent.x,
+                      trans.to_state.opponent.x)
 
         # get opponent's cmd
         cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
         if cmd is None:
             log.error(f'unable to calculate opponent cmd for {trans.round_num}')
+            trans.from_state.opponent.transfer_mods(trans.to_state.opponent)
             return
 
         # keep track of opponent's mods
-        calc_ns = next_state(trans.from_state, trans.cmd, cmd)
-        calc_ns.opponent.transfer_mods(trans.to_state.opponent)
+        calc_ns = next_state(trans.from_state, ns_filter(trans.cmd), cmd)
+        opp = trans.to_state.opponent
+        calc_ns.opponent.transfer_mods(opp)
+        opp.lizards = max(opp.lizards, 0)
+        opp.boosts = max(opp.boosts, 0)
+
+        calc_ns.map.update_global_map()
 
         # score ensemble and choose new opponent weights
         self.ensemble.update_scores(trans.from_state, cmd)
@@ -145,6 +152,10 @@ class Bot:
             self.opp_search_depth = 3
             cmd = offensive_search(self.state, cmds, self.pred_opp)
 
+            if cmd == Cmd.OIL:
+                x, y = self.state.player.x, self.state.player.y
+                self.state.map.global_map[x, y] = Block.OIL_SPILL
+
         # TODO update the global map if commands result in map changes for
         # later use by calc_opp_cmd
 
@@ -167,6 +178,11 @@ class Bot:
 
             # parse raw state
             self.parse_state(round_num, raw_state)
+
+            # place cybertruck from previous round
+            if Cmd(self.prev_cmd).cmd == Cmd.TWEET:
+                x, y = self.prev_cmd.pos
+                self.state.map.global_map[x, y].set_cybertruck()
 
             # check if game is finished
             if self.finished:
