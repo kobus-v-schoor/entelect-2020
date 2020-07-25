@@ -511,6 +511,8 @@ def next_state(state, cmd, opp_cmd):
 # note that this only attempts to calculate cmds that were movement cmds, so
 # offensive cmds like oil and tweeting will be calculated as NOP
 def calc_opp_cmd(cmd, from_state, to_state):
+    cmd = ns_filter(cmd)
+
     x, y = from_state.opponent.x, from_state.opponent.y
     # TODO if emp'ed opponent use the proper speed here
 

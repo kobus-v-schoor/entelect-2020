@@ -30,6 +30,8 @@ class Bot:
         self.search_depth = 3
         self.opp_search_depth = 2
 
+        self.ct_pos = None
+
     # waits for next round number and returns it
     def wait_for_next_round(self):
         try:
@@ -180,9 +182,14 @@ class Bot:
             self.parse_state(round_num, raw_state)
 
             # place cybertruck from previous round
-            if Cmd(self.prev_cmd).cmd == Cmd.TWEET:
+            if self.prev_cmd == Cmd.TWEET:
+                if self.ct_pos is not None:
+                    x, y = self.ct_pos
+                    block = self.state.map.global_map[x, y].get_underlay()
+                    self.state.map.global_map[x, y] = block
                 x, y = self.prev_cmd.pos
                 self.state.map.global_map[x, y].set_cybertruck()
+                self.ct_pos = (x, y)
 
             # check if game is finished
             if self.finished:
