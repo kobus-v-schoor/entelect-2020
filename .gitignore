@@ -14,3 +14,5 @@ act_cmd
 opp_calc
 opp_pred
 problems
+opp_state
+own_state
