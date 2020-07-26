@@ -79,7 +79,7 @@ class Bot:
 
     def process_opp_action(self, trans):
         # clean map of stuff that wasn't there when the opponent was here
-        if trans.from_state.opponent.x > trans.from_state.player.x:
+        if trans.from_state.opponent.x >= trans.from_state.player.x:
             clean_map(trans.from_state, trans.from_state.opponent.x,
                       trans.to_state.opponent.x)
 
@@ -97,7 +97,9 @@ class Bot:
         opp.lizards = max(opp.lizards, 0)
         opp.boosts = max(opp.boosts, 0)
 
-        calc_ns.map.update_global_map()
+        # remove crashed into cybertrucks
+        if trans.from_state.opponent.x < trans.from_state.player.x:
+            calc_ns.map.update_global_map()
 
         # score ensemble and choose new opponent weights
         self.ensemble.update_scores(trans.from_state, cmd)

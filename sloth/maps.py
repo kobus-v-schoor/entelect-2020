@@ -167,8 +167,7 @@ def clean_map(state, from_x, to_x):
 
             # remove any blocks that wasn't here when to opponent was here
             if block == Block.OIL_SPILL:
-                block = Block.EMPTY # just a guess, we can't do any better
+                # just a guess, we can't do any better
+                state.map[x, y] = Block.EMPTY
             elif block == Block.CYBERTRUCK:
-                block = block.get_underlay()
-
-            state.map[x, y] = block
+                state.map[x, y] = block.get_underlay()
