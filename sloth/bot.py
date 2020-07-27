@@ -5,6 +5,7 @@ from functools import lru_cache
 
 from sloth.enums import Cmd, Block
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
+from sloth.state import ns_filter
 from sloth.maps import Map, GlobalMap, clean_map
 from sloth.search import search, offensive_search, score, Weights, opp_search
 from sloth.ensemble import Ensemble
@@ -166,6 +167,8 @@ class Bot:
         return cmd
 
     def run(self):
+        self.prev_cmd = Cmd.NOP
+
         while True:
             # get the next round number
             round_num = self.wait_for_next_round()
