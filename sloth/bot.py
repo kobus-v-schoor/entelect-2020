@@ -112,11 +112,15 @@ class Bot:
             cmd = Cmd(cmd)
         print(f'C;{round_num};{cmd}')
 
+    # just a thin wrapper to include the search depth
+    def pred_opp(self, state):
+        return self._pred_opp(state, self.opp_search_depth)
+
     # predicts the opponent's move based on the given state
     # NOTE only predicts movement and not offensive actions
     @lru_cache(maxsize=None)
-    def pred_opp(self, state):
-        if self.opp_search_depth == 0:
+    def _pred_opp(self, state, search_depth):
+        if search_depth == 0:
             return Cmd.ACCEL
 
         # if opponent is outside our view just assume they are accelerating
@@ -130,7 +134,7 @@ class Bot:
             state.opponent.y) and state.opponent.speed == 0):
             return Cmd.NOP
 
-        return score(opp_search(state, max_search_depth=self.opp_search_depth),
+        return score(opp_search(state, max_search_depth=search_depth),
                      state.switch(), self.opp_weights)[0]
 
     # returns the cmd that should be executed given the current state
@@ -161,9 +165,6 @@ class Bot:
                 x, y = self.state.player.x, self.state.player.y
                 self.state.map.global_map[x, y] = Block.OIL_SPILL
 
-        # TODO update the global map if commands result in map changes for
-        # later use by calc_opp_cmd
-
         return cmd
 
     def run(self):
@@ -177,7 +178,7 @@ class Bot:
                 break
 
             # clear caches
-            self.pred_opp.cache_clear()
+            self._pred_opp.cache_clear()
             next_state.cache_clear()
 
             # read the state file
