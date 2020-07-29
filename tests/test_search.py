@@ -207,6 +207,23 @@ class TestOffensiveSearch:
 
         assert offensive_search(state, pred_opp=pred) == match
 
+    def test_tweet_dont_place_ahead_of_player(self):
+        state = setup_state()
+        state.player.tweets = 1
+
+        state.player.y = 2
+        state.player.x = 200
+
+        state.opponent.y = 2
+        state.opponent.x = 199
+
+        pred = lambda s: Cmd.NOP
+
+        nstate = next_state(state, Cmd.NOP, pred(state))
+        nnstate = next_state(nstate, Cmd.NOP, pred(nstate))
+
+        assert offensive_search(state, pred_opp=pred) == Cmd.NOP
+
     # FIXME re-enable emps when engine is fixed
     # def test_emp_no_emp(self):
     #     state = setup_state()

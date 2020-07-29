@@ -213,7 +213,10 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         nnstate = next_state(nstate, ncmd, pred_opp(nstate))
         pos = (nstate.opponent.x + 1, nnstate.opponent.y)
 
-        actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
+        # if the chosen position is ahead of where we'll be, rather not place
+        # it as it might end up affecting us
+        if pos[0] < nstate.player.x:
+            actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
     # FIXME re-enable emps when engine is fixed
     ## emp logic
