@@ -199,18 +199,12 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
     ## cybertruck logic
     # only kicks in when we are ahead, since if we're behind we can't predict
     # the opponent
-    if state.player.tweets > 0 and state.player.x > state.opponent.x:
+    if (state.player.tweets > 0 and state.player.x > state.opponent.x and
+            len(cmds) > 1):
         # predict the opponent's next 2 moves. once that is done, place the
         # cybertruck in the path of where the second move would have taken them
-        # TODO somehow try and check if we might not be accidentally making
-        # trouble for ourselves by placing the ct in front of us
         nstate = next_state(state, cmds[0], pred_opp(state))
-
-        # if were on the very last round, assume our next move is going to be
-        # NOP (we'll be past the finish line)
-        ncmd = cmds[1] if len(cmds) >= 2 else Cmd.NOP
-
-        nnstate = next_state(nstate, ncmd, pred_opp(nstate))
+        nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
         pos = (nstate.opponent.x + 1, nnstate.opponent.y)
 
         # if the chosen position is ahead of where we'll be, rather not place
