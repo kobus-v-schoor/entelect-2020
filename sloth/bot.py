@@ -3,7 +3,7 @@ import os
 from collections import deque
 from functools import lru_cache
 
-from sloth.enums import Cmd, Block
+from sloth.enums import Cmd, Block, boost_speed
 from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
 from sloth.state import ns_filter
 from sloth.maps import Map, GlobalMap, clean_map
@@ -83,6 +83,19 @@ class Bot:
         if trans.from_state.opponent.x >= trans.from_state.player.x:
             clean_map(trans.from_state, trans.from_state.opponent.x,
                       trans.to_state.opponent.x)
+
+        # check if we have lost track of the opponent's damage - if their x
+        # offset or final speed is more than they should be allowed decrease
+        # their damage until their move becomes valid
+        x_off = trans.to_state.opponent.x - trans.from_state.opponent.x
+        if trans.from_state.opponent.y != trans.to_state.opponent.y:
+            x_off += 1
+        fspeed = trans.to_state.opponent.speed
+
+        dmg = max(trans.from_state.opponent.damage, 0)
+        while max(x_off, fspeed) > boost_speed(dmg) and dmg > 0:
+            dmg -= 1
+        trans.from_state.opponent.damage = dmg
 
         # get opponent's cmd
         cmd = calc_opp_cmd(trans.cmd, trans.from_state, trans.to_state)
