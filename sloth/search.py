@@ -212,10 +212,11 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         if pos[0] < nstate.player.x:
             actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
-    # FIXME re-enable emps when engine is fixed
     ## emp logic
-    if False:
-    # if state.player.emps > 0 and state.opponent.x > state.player.x:
+    # TODO verify if emp logic gets applied before turning because if it does
+    # then we can hit the opponent even though they turn outside the three
+    # lanes
+    if state.player.emps > 0 and state.opponent.x > state.player.x:
         # opponent in the same lane as we are
         # will definitely hit
         if state.opponent.y == state.player.y:
