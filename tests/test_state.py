@@ -1105,6 +1105,25 @@ class TestNextState:
         assert nstate.player.boosting
         assert nstate.opponent.boosting
 
+    # test for bug in game engine where fixing while on cybertruck caused a
+    # collision
+    def test_fix_on_ct(self):
+        state = setup_state()
+
+        for player in [state.player, state.opponent]:
+            player.damage = 2
+            state.map[player.x, player.y].set_cybertruck()
+
+        nstate = next_state(state, Cmd.FIX, Cmd.FIX)
+
+        for prev, cur in zip([state.player, state.opponent],
+                             [nstate.player, nstate.opponent]):
+
+            assert cur.x == prev.x
+            assert cur.y == prev.y
+            assert cur.damage == prev.damage - 2
+            assert nstate.map[prev.x, prev.y] == Block.CYBERTRUCK
+
 class TestCalcOppCmd:
     def test_valid_cmds(self):
         state = setup_state()
