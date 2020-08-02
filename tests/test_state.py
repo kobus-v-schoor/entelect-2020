@@ -362,6 +362,7 @@ class TestNextState:
             assert cur.boosting == True
             assert cur.boost_counter == 5
 
+        # test no damage
         for i in range(5):
             pstate = nstate
             nstate = next_state(nstate, Cmd.NOP, cmd.NOP)
@@ -374,6 +375,27 @@ class TestNextState:
                 else:
                     assert cur.boosting == False
                     assert cur.speed == Speed.MAX_SPEED.value
+
+        # test with damage
+        state.player.speed = Speed.MIN_SPEED.value
+        state.opponent.speed = Speed.MIN_SPEED.value
+        state.player.damage = 2
+        state.opponent.damage = 2
+
+        nstate = next_state(state, cmd, cmd)
+
+        for i in range(5):
+            pstate = nstate
+            nstate = next_state(nstate, Cmd.NOP, cmd.NOP)
+            for prev, cur in zip([pstate.player, pstate.opponent],
+                                 [nstate.player, nstate.opponent]):
+                assert cur.boost_counter - prev.boost_counter == -1
+                if i < 4:
+                    assert cur.boosting == True
+                    assert cur.speed == boost_speed(cur.damage)
+                else:
+                    assert cur.boosting == False
+                    assert cur.speed == max_speed(cur.damage)
 
     def test_decel_boost_cancel(self):
         state = setup_state()
@@ -1016,14 +1038,13 @@ class TestNextState:
         assert nstate.opponent.speed == Speed.SPEED_2.value
 
         # speed capped at MIN_SPEED (0)
-        # not testing boost because it might have different logic
         state.player.lizards = 1
         state.opponent.lizards = 1
 
         for cmd in [Cmd.ACCEL, Cmd.LEFT, Cmd.RIGHT, Cmd.DECEL, Cmd.NOP,
-                    Cmd.LIZARD]:
-            state.player.damage = 6
-            state.opponent.damage = 6
+                    Cmd.LIZARD, Cmd.BOOST]:
+            state.player.damage = 5
+            state.opponent.damage = 5
             state.player.speed = Speed.MIN_SPEED.value
             state.opponent.speed = Speed.MIN_SPEED.value
 
@@ -1036,8 +1057,53 @@ class TestNextState:
             assert nstate.opponent.y == state.opponent.y
 
     def test_damage_boost_limit(self):
-        # TODO implement this when rules are clarified
-        pass
+        state = setup_state()
+
+        state.player.boosts = 1
+        state.opponent.boosts = 1
+        cmd = Cmd.BOOST
+
+        # normal, no damage
+        state.player.speed = Speed.SPEED_3.value
+        state.opponent.speed = Speed.SPEED_3.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.BOOST_SPEED.value
+        assert nstate.opponent.speed == Speed.BOOST_SPEED.value
+        assert nstate.player.boosting
+        assert nstate.opponent.boosting
+
+        # speed capped at SPEED_3, so should do nothing
+        state.player.damage = 2
+        state.opponent.damage = 2
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_3.value
+        assert nstate.opponent.speed == Speed.SPEED_3.value
+        assert nstate.player.boosting
+        assert nstate.opponent.boosting
+
+        # should be able to boost to SPEED_3
+        state.player.speed = Speed.SPEED_2.value
+        state.opponent.speed = Speed.SPEED_2.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_3.value
+        assert nstate.opponent.speed == Speed.SPEED_3.value
+        assert nstate.player.boosting
+        assert nstate.opponent.boosting
+
+        # speed capped at SPEED_2
+        state.player.damage = 3
+        state.opponent.damage = 3
+        state.player.speed = Speed.SPEED_1.value
+        state.opponent.speed = Speed.SPEED_1.value
+
+        nstate = next_state(state, cmd, cmd)
+        assert nstate.player.speed == Speed.SPEED_2.value
+        assert nstate.opponent.speed == Speed.SPEED_2.value
+        assert nstate.player.boosting
+        assert nstate.opponent.boosting
 
 class TestCalcOppCmd:
     def test_valid_cmds(self):

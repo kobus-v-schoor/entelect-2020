@@ -258,8 +258,7 @@ def count_boosting(player):
         # boost ran out
         if player.boost_counter == 0:
             player.boosting = False
-            # FIXME restore to damage capped maximum speed when fixed in engine
-            player.speed = Speed.MAX_SPEED.value
+            player.speed = max_speed(player.damage)
 
 def calc_trajectory(player, cmd):
     traj = Trajectory(player.damage)
@@ -512,9 +511,8 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x, y = from_state.opponent.x, from_state.opponent.y
     # TODO if emp'ed opponent use the proper speed here
 
-    # FIXME use proper max speed
     if from_state.opponent.boost_counter == 1:
-        from_state.opponent.speed = Speed.MAX_SPEED.value
+        from_state.opponent.speed = max_speed(from_state.opponent.damage)
     speed = from_state.opponent.speed
 
     fx, fy = to_state.opponent.x, to_state.opponent.y
