@@ -725,8 +725,7 @@ class TestNextState:
             assert prev.damage == 0
             assert cur.damage == 2
 
-    # FIXME remove when turned onto cybertruck is fixed in engine
-    def test_cybertruck_turn_bug(self):
+    def test_turn_into_cybertruck(self):
         state = setup_state()
 
         state.player.x = 1
@@ -741,16 +740,22 @@ class TestNextState:
         nstate = next_state(state, Cmd.LEFT, Cmd.LEFT)
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
-            assert prev.speed == cur.speed
-            assert cur.x > prev.x
+            assert cur.speed == 3
+            # check that the player ends up behind cybertruck (effectively
+            # moving back one block)
+            assert cur.x == prev.x - 1
             assert cur.y == prev.y - 1
+            assert nstate.map[prev.x, prev.y - 1] != Block.CYBERTRUCK
 
         nstate = next_state(state, Cmd.RIGHT, Cmd.RIGHT)
         for prev, cur in zip([state.player, state.opponent],
                              [nstate.player, nstate.opponent]):
-            assert prev.speed == cur.speed
-            assert cur.x > prev.x
+            assert cur.speed == 3
+            # check that the player ends up behind cybertruck (effectively
+            # moving back one block)
+            assert cur.x == prev.x - 1
             assert cur.y == prev.y + 1
+            assert nstate.map[prev.x, prev.y + 1] != Block.CYBERTRUCK
 
     def test_hit_cybertruck_both_samelane(self):
         state = setup_state()

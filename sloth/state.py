@@ -371,10 +371,6 @@ def resolve_cybertruck_collisions(state_map, player, traj, lizarding):
     path_mods = PathMods()
 
     for x, y in gen_path(state_map, player, traj, lizarding):
-        # FIXME workaround for turning onto cybertruck bug in engine
-        if x == player.x:
-            continue
-
         block = state_map[x, y]
 
         if block == Block.CYBERTRUCK:
