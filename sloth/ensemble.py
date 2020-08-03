@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-from sloth.search import Weights, opp_search, score
+from sloth.search import Weights, opp_search
 
 class Ensemble:
     def __init__(self, size):

@@ -82,7 +82,7 @@ class Cmd:
         elif type(cmd) is Cmd:
             self.cmd = cmd.cmd
         else:
-            self.cmd = CmdEnum(cmd)
+            self.cmd = Cmd.CmdEnum(cmd)
 
         self.pos = pos
 

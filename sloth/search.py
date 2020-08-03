@@ -1,7 +1,6 @@
-import random
 from collections import deque
 
-from sloth.enums import Cmd, Speed, Block
+from sloth.enums import Cmd
 from sloth.state import valid_actions, next_state
 
 class Weights:
@@ -134,7 +133,8 @@ def score(options, cur_state, weights, pred_opp=lambda s: Cmd.ACCEL):
 
     # check if any of actions result in a finish - we're in the endgame now
     if any(f.player.x >= max_x for _, f in options):
-        key = lambda o: o[1].player.speed if o[1].player.x >= max_x else 0
+        def key(o):
+            return o[1].player.speed if o[1].player.x >= max_x else 0
     else:
         # score is the sum of the final state and the next state score. next
         # state score is added to reward cmd sequences that take benificial

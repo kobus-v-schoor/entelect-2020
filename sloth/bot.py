@@ -8,7 +8,7 @@ from sloth.state import State, Player, StateTransition, calc_opp_cmd, next_state
 from sloth.state import ns_filter
 from sloth.maps import Map, GlobalMap, clean_map
 from sloth.search import search, offensive_search, score, Weights, opp_search
-from sloth.ensemble import Ensemble
+# from sloth.ensemble import Ensemble
 from sloth.log import log
 
 class Bot:
@@ -26,7 +26,7 @@ class Bot:
             self.weights = Weights(json.load(f))
         self.opp_weights = self.weights
 
-        self.ensemble = Ensemble(size=1000)
+        # self.ensemble = Ensemble(size=1000)
 
         self.search_depth = 3
         self.opp_search_depth = 2
@@ -116,8 +116,8 @@ class Bot:
             calc_ns.map.update_global_map()
 
         # score ensemble and choose new opponent weights
-        self.ensemble.update_scores(trans.from_state, cmd)
-        self.opp_weights = self.ensemble.best_weights()
+        # self.ensemble.update_scores(trans.from_state, cmd)
+        # self.opp_weights = self.ensemble.best_weights()
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
