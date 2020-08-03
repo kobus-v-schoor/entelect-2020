@@ -213,25 +213,10 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
             actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
     ## emp logic
-    # TODO verify if emp logic gets applied before turning because if it does
-    # then we can hit the opponent even though they turn outside the three
-    # lanes
     # TODO add safety checks to check if we will crash into the opponent if
     # emp'ing them
     if state.player.emps > 0 and state.opponent.x > state.player.x:
-        # opponent in the same lane as we are
-        # will definitely hit
-        if state.opponent.y == state.player.y:
-            actions.append((0, Cmd.EMP))
-        # opponent in left-most lane and we are one lane right of them
-        # will definitely hit
-        elif (state.opponent.y == state.map.global_map.min_y and
-                state.player.y == state.map.global_map.min_y + 1):
-            actions.append((0, Cmd.EMP))
-        # opponent in right-most lane and we are one lane left of them
-        # will definitely hit
-        elif (state.opponent.y == state.map.global_map.max_y and
-                state.player.y == state.map.global_map.max_y - 1):
+        if abs(state.opponent.y - state.player.y) <= 1:
             actions.append((0, Cmd.EMP))
 
     if actions:

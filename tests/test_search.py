@@ -283,3 +283,26 @@ class TestOffensiveSearch:
         state.opponent.y = 4
 
         assert offensive_search(state) == Cmd.EMP
+
+    def test_emp_outer_lanes(self):
+        state = setup_state()
+        state.player.emps = 1
+
+        state.player.x = 100
+        state.opponent.x = 150
+
+        state.player.y = 1
+        state.opponent.y = 2
+        assert offensive_search(state) == Cmd.EMP
+
+        state.player.y = 2
+        state.opponent.y = 3
+        assert offensive_search(state) == Cmd.EMP
+
+        state.player.y = 4
+        state.opponent.y = 3
+        assert offensive_search(state) == Cmd.EMP
+
+        state.player.y = 3
+        state.opponent.y = 2
+        assert offensive_search(state) == Cmd.EMP
