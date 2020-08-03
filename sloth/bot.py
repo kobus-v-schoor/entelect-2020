@@ -110,6 +110,14 @@ class Bot:
         if cmd is None:
             log.error(f'unable to calculate opponent cmd for {trans.round_num}')
             trans.from_state.opponent.transfer_mods(trans.to_state.opponent)
+
+            with open('opp_state', 'a') as f:
+                f.write(str(trans.round_num+1) + ' ' + str({
+                    'damage': trans.to_state.opponent.damage,
+                    'boosts': trans.to_state.opponent.boosts,
+                    'lizards': trans.to_state.opponent.lizards,
+                }) + '\n')
+
             return
 
         with open('opp_calc', 'a') as f:
@@ -146,6 +154,7 @@ class Bot:
         with open('act_cmd', 'a') as f:
             f.write(f'{round_num} {Cmd(ns_filter(cmd))}\n')
         if self.state.opponent.x < self.state.map.max_x:
+            self.opp_search_depth = 3
             with open('opp_pred', 'a') as f:
                 f.write(f'{round_num} {Cmd(self.pred_opp(self.state))}\n')
 
