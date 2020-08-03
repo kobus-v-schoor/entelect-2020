@@ -306,3 +306,16 @@ class TestOffensiveSearch:
         state.player.y = 3
         state.opponent.y = 2
         assert offensive_search(state) == Cmd.EMP
+
+    def test_emp_safety(self):
+        state = setup_state()
+        state.player.emps = 1
+
+        state.player.x = 100
+        state.player.y = 2
+
+        state.opponent.x = 104
+        state.opponent.y = 2
+
+        assert state.player.x + state.player.speed >= state.opponent.x
+        assert offensive_search(state) != Cmd.EMP

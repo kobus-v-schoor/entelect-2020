@@ -213,11 +213,14 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
             actions.append((4, Cmd(Cmd.TWEET, pos=pos)))
 
     ## emp logic
-    # TODO add safety checks to check if we will crash into the opponent if
-    # emp'ing them
     if state.player.emps > 0 and state.opponent.x > state.player.x:
         if abs(state.opponent.y - state.player.y) <= 1:
-            actions.append((0, Cmd.EMP))
+            safe = state.player.y != state.opponent.y
+            safe = (safe or next_state(state, Cmd.NOP, Cmd.NOP).player.x <
+                    state.opponent.x)
+
+            if safe:
+                actions.append((0, Cmd.EMP))
 
     if actions:
         return min(actions)[1]
