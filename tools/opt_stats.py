@@ -59,9 +59,9 @@ def optimize(starting_vals, parameters, opponent, neg_opponent):
 
             config[parameter] = value
             stats = play_stats(match_count, tmp_wd, config, opponent)
-            score = stats['A - sonic-sloth']['eff_speed']['mean']
+            score = stats['A - sonic-sloth']['eff_ratio']['mean']
             if neg_opponent:
-                score -= stats['B - sonic-sloth']['eff_speed']['mean']
+                score -= stats['B - sonic-sloth']['eff_ratio']['mean']
             scores[value] = score
             print(f'score for {parameter} = {value} is {score}')
 

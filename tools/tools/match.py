@@ -238,7 +238,7 @@ def play_stats(count, wd, a_config, b_config):
 
             shutil.rmtree(tmp_dir)
 
-    stats = matches_stats(logs_dir, keep_prefix=True)
+    stats = matches_stats(logs_dir, keep_prefix=True, include_speed_ratio=True)
     shutil.rmtree(logs_dir)
 
     return stats
