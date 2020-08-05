@@ -71,12 +71,13 @@ def setup_tmp_wd(wd):
 
     return (tmp_dir,) + setup_wd(tmp_dir)
 
-def play_match(starter_dir, player_a, player_b):
+def play_match(starter_dir, player_a, player_b, seed=None):
     # set players
     set_match_players(starter_dir, player_a, player_b)
 
     # set seed
-    seed = random.randint(0, 2 ** 16)
+    if seed is None:
+        seed = random.randint(0, 2 ** 16)
     set_seed(starter_dir, seed)
 
     logs_dir = os.path.join(starter_dir, 'match-logs')
@@ -201,7 +202,7 @@ def rank(matches):
 
     return sorted(score, key=lambda p: (p[1], p[2]), reverse=True)
 
-def play_stats_match(wd, a_config, b_config):
+def play_stats_match(seed, wd, a_config, b_config):
     # setup tmp wd
     tmp_dir, starter_dir, player_a, player_b = setup_tmp_wd(wd)
 
@@ -210,7 +211,7 @@ def play_stats_match(wd, a_config, b_config):
     set_player_config(player_b, b_config)
 
     # play_match
-    play_match(starter_dir, player_a, player_b)
+    play_match(starter_dir, player_a, player_b, seed)
 
     match_logs = os.path.join(starter_dir, 'match-logs')
 
@@ -219,12 +220,15 @@ def play_stats_match(wd, a_config, b_config):
 def play_stats_match_wrapper(tup):
     return play_stats_match(*tup)
 
-def play_stats(count, wd, a_config, b_config):
+def play_stats(count, seeds, wd, a_config, b_config):
     logs_dir = os.path.join(wd, 'logs')
     os.makedirs(logs_dir)
 
+    if seeds is None:
+        seeds = [random.randint(0, 2 ** 16) for _ in range(count)]
+
     with Pool(int(os.cpu_count() / cpu_div)) as pool:
-        matches = [(wd, a_config, b_config)] * count
+        matches = [(seed, wd, a_config, b_config) for seed in seeds]
         gen = pool.imap_unordered(play_stats_match_wrapper, matches)
 
         count = 0
@@ -241,4 +245,4 @@ def play_stats(count, wd, a_config, b_config):
     stats = matches_stats(logs_dir, keep_prefix=True)
     shutil.rmtree(logs_dir)
 
-    return stats
+    return stats, seeds

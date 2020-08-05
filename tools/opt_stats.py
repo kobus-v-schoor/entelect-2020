@@ -49,6 +49,7 @@ def optimize(starting_vals, parameters, opponent, neg_opponent):
     for parameter in parameters:
         print(f'now trying to optimize {parameter}')
 
+        seeds = None
         scores = {}
 
         value = starting_vals[parameter]
@@ -58,7 +59,8 @@ def optimize(starting_vals, parameters, opponent, neg_opponent):
             print(f'testing {parameter} = {value}')
 
             config[parameter] = value
-            stats = play_stats(match_count, tmp_wd, config, opponent)
+            stats, seeds = play_stats(match_count, seeds, tmp_wd, config,
+                                     opponent)
             score = stats['A - sonic-sloth']['eff_speed']['mean']
             if neg_opponent:
                 score -= stats['B - sonic-sloth']['eff_speed']['mean']
