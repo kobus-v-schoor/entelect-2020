@@ -28,9 +28,9 @@ print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
 # pos is kept constant as point of reference
 movement = ['damage', 'speed', 'boosts', 'lizards', 'score', 'next_state']
-offensive = ['oils', 'tweets'] # , 'emps']
+offensive = ['oils']#, 'tweets'] # , 'emps']
 
-match_count = 20
+match_count = 40
 samples = 30
 digits = 4
 
