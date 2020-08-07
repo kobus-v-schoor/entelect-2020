@@ -201,10 +201,21 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
     # the opponent
     if (state.player.tweets > 0 and state.player.x > state.opponent.x and
             len(cmds) > 1):
+
+        # avoids predicting fixes
+        def get_cmd(state):
+            state = state.copy()
+            cmd = Cmd.FIX
+            while cmd == Cmd.FIX:
+                cmd = pred_opp(state)
+                state.opponent.damage = max(0, state.opponent.damage - 2)
+
+            return cmd
+
         # predict the opponent's next 2 moves. once that is done, place the
         # cybertruck in the path of where the second move would have taken them
-        nstate = next_state(state, cmds[0], pred_opp(state))
-        nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
+        nstate = next_state(state, cmds[0], get_cmd(state))
+        nnstate = next_state(nstate, cmds[1], get_cmd(nstate))
         pos = (nstate.opponent.x + 3, nnstate.opponent.y)
 
         # if the chosen position is ahead of where we'll be, rather not place

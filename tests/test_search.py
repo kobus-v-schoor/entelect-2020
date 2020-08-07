@@ -219,10 +219,27 @@ class TestOffensiveSearch:
 
         pred = lambda s: Cmd.NOP
 
-        nstate = next_state(state, Cmd.NOP, pred(state))
-        nnstate = next_state(nstate, Cmd.NOP, pred(nstate))
-
         assert offensive_search(state, pred_opp=pred) == Cmd.NOP
+
+    def test_tweet_ignore_fix(self):
+        state = setup_state()
+        state.player.tweets = 1
+
+        state.player.x = 100
+        state.opponent.x = 10
+        state.opponent.y = 4
+        state.opponent.damage = 2
+
+        def pred(state):
+            if state.opponent.damage > 0:
+                return Cmd.FIX
+            return Cmd.LEFT
+
+        nstate = next_state(state, Cmd.NOP, Cmd.LEFT)
+        nnstate = next_state(nstate, Cmd.NOP, Cmd.LEFT)
+        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x + 1, nnstate.opponent.y))
+
+        assert offensive_search(state, pred_opp=pred) == match
 
     def test_emp_no_emp(self):
         state = setup_state()
