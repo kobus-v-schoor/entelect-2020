@@ -71,7 +71,7 @@ class Weights:
             to_state.player.tweets - from_state.player.tweets,
             to_state.player.emps - from_state.player.emps,
 
-            -1 * (to_state.player.damage - from_state.player.damage),
+            to_state.player.damage - from_state.player.damage,
             to_state.player.score - from_state.player.score,
         ]
 

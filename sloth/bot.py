@@ -117,7 +117,8 @@ class Bot:
 
         # update learner and calculate new opponent weights
         self.learner.update(trans.from_state, cmd)
-        self.opp_weights = self.learner.calc_weights()
+        if trans.round_num >= 50:
+            self.opp_weights = self.learner.calc_weights()
 
     # executes cmd for round_num
     def exec(self, round_num, cmd):
