@@ -8,31 +8,31 @@ import random
 from tools.match import play_stats
 
 seed = {
-    'pos': 1.0,
-    'speed': 1.0,
+    "pos": 1.0,
+    "speed": 1.3188,
 
-    'boosts': 9.6,
-    'lizards': 2.3,
+    "boosts": 9.7099,
+    "lizards": 2.8609,
 
-    'oils': 0.4871,
-    'tweets': 0,
-    'emps': 1,
+    "oils": 0.4298,
+    "tweets": 2.1387,
+    "emps": 1,
 
-    'damage': -1,
-    'score': 0.3,
+    "damage": -4.2475,
+    "score": -0.0953,
 
-    'next_state': 0.5
+    "next_state": 0.6745
 }
 
 print(f'starting with seed {json.dumps(seed, indent=2)}\n')
 
 # pos is kept constant as point of reference
 movement = ['damage', 'speed', 'boosts', 'lizards', 'score', 'next_state']
-offensive = ['oils', 'tweets'] # , 'emps']
+offensive = ['oils', 'emps',] # 'tweets']
 
-match_count = 20
-samples = 30
-digits = 4
+match_count = 24
+samples = 60
+digits = 5
 
 print(f'movement parameters: {movement}')
 print(f'offensive parameters: {offensive}\n')
@@ -78,5 +78,6 @@ def optimize(starting_vals, parameters, opponent, neg_opponent):
 
     return config
 
-mov_config = optimize(seed, movement, seed, neg_opponent=False)
-off_config = optimize(mov_config, offensive, seed, neg_opponent=True)
+optimize(seed, movement + offensive, seed, neg_opponent=True)
+# mov_config = optimize(seed, movement, seed, neg_opponent=False)
+# off_config = optimize(mov_config, offensive, seed, neg_opponent=True)

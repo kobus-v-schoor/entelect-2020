@@ -1,16 +1,16 @@
 {
 	"pos": 1.0,
-	"speed": 1.3188,
+	"speed": 2.31631,
 
-	"boosts": 9.7099,
-	"lizards": 2.8609,
+	"boosts": 10.20902,
+	"lizards": 3.48739,
 
-	"oils": 0.4298,
 	"tweets": 2.1387,
-	"emps": 1,
+	"oils": -1.07355,
+	"emps": 4.16484,
 
-	"damage": -4.2475,
-	"score": -0.0953,
+	"damage": -7.57173,
+	"score": -0.40294,
 
-	"next_state": 0.6745
+	"next_state": 0.51145
 }

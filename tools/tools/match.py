@@ -10,7 +10,7 @@ from tools.stats import matches_stats
 
 starter_pack_zip = os.path.realpath('starter-pack.zip')
 bot_zip = os.path.realpath('bot.zip')
-cpu_div = 1.3
+cpu_div = 1
 
 def run(cmd, wd):
     subprocess.run(cmd, cwd=wd, capture_output=True, shell=True, check=True)
