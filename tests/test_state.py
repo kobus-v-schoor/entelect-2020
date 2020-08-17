@@ -925,44 +925,39 @@ class TestNextState:
         assert nstate.player.damage == 0
         assert nstate.opponent.damage == 0
 
-    def test_collision_lizarding(self):
+    def test_collision_rear_end_lizarding(self):
         state = setup_state()
 
-        state.player.x = 2
-        state.player.y = 2
-        state.player.speed = Speed.SPEED_1.value
-        state.opponent.x = 1
-        state.opponent.y = 2
-        state.opponent.speed = Speed.MAX_SPEED.value
+        def switch(state, switched):
+            if switched:
+                return (state.opponent, state.player)
+            else:
+                return (state.player, state.opponent)
 
-        nstate = next_state(state, Cmd.NOP, Cmd.LIZARD)
+        for switched in [True, False]:
+            behind, ahead = switch(state, switched)
 
-        assert state.player.x > state.opponent.x
-        assert nstate.player.x == state.player.x + state.player.speed
-        assert nstate.player.y == state.player.y
-        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
-        assert nstate.opponent.y == state.opponent.y
-        assert nstate.opponent.x > nstate.player.x
-        assert nstate.player.damage == 0
-        assert nstate.opponent.damage == 0
+            behind.x = 1
+            behind.y = 2
+            behind.speed = Speed.MAX_SPEED.value
+            behind.lizards = 1
 
-        state.player.x = 1
-        state.player.y = 2
-        state.player.speed = Speed.MAX_SPEED.value
-        state.opponent.x = 2
-        state.opponent.y = 2
-        state.opponent.speed = Speed.SPEED_1.value
+            ahead.x = 2
+            ahead.y = 2
+            ahead.speed = Speed.SPEED_1.value
+            ahead.lizards = 1
 
-        nstate = next_state(state, Cmd.LIZARD, Cmd.NOP)
+            for p1, p2 in zip([Cmd.NOP, Cmd.LIZARD],
+                              [Cmd.LIZARD, Cmd.NOP]):
+                nstate = next_state(state, p1, p2)
+                nbehind, nahead = switch(nstate, switched)
 
-        assert state.opponent.x > state.player.x
-        assert nstate.player.x == state.player.x + state.player.speed
-        assert nstate.player.y == state.player.y
-        assert nstate.opponent.x == state.opponent.x + state.opponent.speed
-        assert nstate.opponent.y == state.opponent.y
-        assert nstate.player.x > nstate.opponent.x
-        assert nstate.player.damage == 0
-        assert nstate.opponent.damage == 0
+                assert behind.y == ahead.y == nbehind.y == nahead.y
+                assert behind.x < ahead.x
+                assert nbehind.x > nahead.x
+                assert nbehind.x == behind.x + behind.speed
+                assert behind.damage == nbehind.damage
+                assert ahead.damage == nahead.damage
 
     def test_damage_cap(self):
         state = setup_state()

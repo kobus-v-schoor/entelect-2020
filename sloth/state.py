@@ -315,7 +315,7 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
     started_same_lane = player_a.y == player_b.y
     ended_same_lane = traj_a.y_off == traj_b.y_off
     a_started_ahead = player_a.x > player_b.x
-    behind_lizards = b_lizarding if a_started_ahead else a_lizarding
+    any_player_lizards = a_lizarding or b_lizarding
     a_ended_ahead = player_a.x + traj_a.x_off > player_b.x + traj_b.x_off
     b_ended_ahead = player_b.x + traj_b.x_off > player_a.x + traj_a.x_off
 
@@ -323,7 +323,7 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
     if a_ended_ahead == b_ended_ahead:
         a_ended_ahead = not a_started_ahead
 
-    drove_through = a_started_ahead != a_ended_ahead and not behind_lizards
+    drove_through = a_started_ahead != a_ended_ahead and not any_player_lizards
 
     if started_same_lane and ended_same_lane and drove_through:
         # whoever is behind cannot pass the player in front
