@@ -959,6 +959,70 @@ class TestNextState:
                 assert behind.damage == nbehind.damage
                 assert ahead.damage == nahead.damage
 
+    def test_collision_same_block_lizarding(self):
+        state = setup_state()
+
+        def switch(state, switched):
+            if switched:
+                return (state.opponent, state.player, Cmd.NOP, Cmd.LIZARD)
+            else:
+                return (state.player, state.opponent, Cmd.LIZARD, Cmd.NOP)
+
+        for switched in [True, False]:
+            behind, ahead, p1, p2 = switch(state, switched)
+
+            behind.x = 10
+            behind.y = 2
+            behind.speed = Speed.MAX_SPEED.value # 9
+            behind.lizards = 1
+
+            ahead.x = 11
+            ahead.y = 2
+            ahead.speed = Speed.SPEED_3.value # 8
+
+            assert behind.x + behind.speed == ahead.x + ahead.speed
+
+            nstate = next_state(state, p1, p2)
+            nbehind, nahead, _, _ = switch(nstate, switched)
+
+            assert nahead.y == ahead.y
+            assert nahead.x == ahead.x + ahead.speed
+
+            assert nbehind.y == behind.y
+            assert nbehind.x == nahead.x - 1
+
+    def test_turn_collision_start_x(self):
+        state = setup_state()
+
+        def switch(state, switched):
+            if switched:
+                return (state.opponent, state.player)
+            else:
+                return (state.player, state.opponent)
+
+        for switched in [True, False]:
+            behind, ahead = switch(state, switched)
+
+            behind.x = 10
+            behind.y = 2
+            behind.damage = 0
+            behind.speed = Speed.MAX_SPEED.value
+
+            ahead.x = 11
+            ahead.y = 2
+            ahead.damage = 0
+            ahead.speed = Speed.SPEED_1.value
+
+            state.map[behind.x, behind.y + 1] = Block.MUD
+
+            nstate = next_state(state, Cmd.RIGHT, Cmd.RIGHT)
+            nbehind, nahead = switch(nstate, switched)
+
+            for cur, prev in zip([nbehind, nahead], [behind, ahead]):
+                assert cur.y == prev.y + 1
+                assert cur.speed == prev.speed
+                assert cur.damage == prev.damage == 0
+
     def test_damage_cap(self):
         state = setup_state()
         cmd = Cmd.NOP

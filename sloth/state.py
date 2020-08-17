@@ -96,6 +96,7 @@ class Trajectory:
         self.y_off = 0
         self.speed = 0
         self.damage = damage
+        self.collided = False
 
     def next_speed(self):
         self.speed = next_speed(self.speed, self.damage)
@@ -307,7 +308,7 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
     # started in the same lane
     # ended in the same lane
     # one passed the other during the round
-    # the one that was behind didn't lizard over the other
+    # none of the players were lizarding
 
     # player that was behind ends up one block behind the player that was
     # in front at the start of the turn
@@ -330,8 +331,10 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
         # check if player a started ahead
         if a_started_ahead:
             traj_b.x_off = player_a.x + traj_a.x_off - 1 - player_b.x
+            traj_b.collided = True
         else:
             traj_a.x_off = player_b.x + traj_b.x_off - 1 - player_a.x
+            traj_a.collided = True
 
     # same destination block
     # both players stay in the same lane and their x_off gets decremented
@@ -340,13 +343,27 @@ def check_collisions(player_a, player_b, traj_a, traj_b, a_lizarding,
     y_same = player_a.y + traj_a.y_off == player_b.y + traj_b.y_off
 
     if x_same and y_same:
-        # -1 x_off penalty
-        traj_a.x_off -= 1
-        traj_b.x_off -= 1
+        if not any_player_lizards:
+            # -1 x_off penalty
+            traj_a.x_off -= 1
+            traj_b.x_off -= 1
 
-        # back to original lane
-        traj_a.y_off = 0
-        traj_b.y_off = 0
+            # back to original lane
+            traj_a.y_off = 0
+            traj_b.y_off = 0
+
+            traj_a.collided = True
+            traj_b.collided = True
+        else:
+            # if players ended up on same block but one player was lizarding,
+            # the one that was behind should end up one block behind the other
+            # one (like a normal rear-end)
+            if a_started_ahead:
+                traj_b.x_off = player_a.x + traj_a.x_off - 1 - player_b.x
+                traj_b.collided = True
+            else:
+                traj_a.x_off = player_b.x + traj_b.x_off - 1 - player_a.x
+                traj_a.collided = True
 
 def gen_path(state_map, player, traj, lizarding):
     # didn't move at all, so no path to generate
@@ -354,7 +371,11 @@ def gen_path(state_map, player, traj, lizarding):
         return
 
     if not lizarding:
-        start = player.x if traj.y_off else player.x + 1
+        # player collided edge case
+        if traj.y_off and not traj.collided:
+            start = player.x
+        else:
+            start = player.x + 1
     else:
         start = player.x + traj.x_off
     end = player.x + traj.x_off
