@@ -221,8 +221,15 @@ class TestValidActions:
 
         # already boosting
         state.player.boosting = True
+        state.player.boost_counter = 5
         state.player.speed = boost_speed(state.player.damage)
         assert Cmd.BOOST not in valid_actions(state)
+
+        # already boosting but boost counter equals 1
+        state.player.boosting = True
+        state.player.boost_counter = 1
+        state.player.speed = boost_speed(state.player.damage)
+        assert Cmd.BOOST in valid_actions(state)
 
     def test_lizards(self):
         state = setup_state()

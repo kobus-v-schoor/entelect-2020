@@ -250,6 +250,8 @@ def valid_actions(state):
     if state.player.boosts > 0:
         if state.player.speed < boost_speed(state.player.damage):
             valid.append(Cmd.BOOST)
+        if state.player.boost_counter == 1:
+            valid.append(Cmd.BOOST)
 
     return valid
 
