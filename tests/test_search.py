@@ -319,3 +319,22 @@ class TestOffensiveSearch:
 
         assert state.player.x + state.player.speed >= state.opponent.x
         assert offensive_search(state) != Cmd.EMP
+
+    def test_emp_ct_combo(self):
+        state = setup_state()
+        state.player.emps = 1
+        state.player.tweets = 1
+
+        state.player.x = 100
+        state.player.y = 2
+
+        state.opponent.x = 120
+        state.opponent.y = 4
+
+        pred_opp = lambda s: Cmd.LEFT
+        nstate = next_state(state, Cmd.NOP, pred_opp(state))
+        nstate.player.tweets -= 1
+        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x, nstate.opponent.y))
+
+        assert offensive_search(state, pred_opp=pred_opp) == match
+        assert offensive_search(nstate, pred_opp=pred_opp) == Cmd.EMP

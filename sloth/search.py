@@ -220,7 +220,19 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
                     state.opponent.x)
 
             if safe:
-                actions.append((0, Cmd.EMP))
+                actions.append((1, Cmd.EMP))
+
+    ## edge-case cybertruck + tweet combo
+    if cmds == [Cmd.NOP, Cmd.NOP] and state.opponent.x > state.player.x:
+        can_tweet = state.player.tweets > 0
+
+        can_emp = state.player.emps > 0
+        nstate = next_state(state, cmds[0], pred_opp(state))
+        can_emp = can_emp and abs(nstate.opponent.y - nstate.player.y) <= 1
+
+        if can_tweet and can_emp:
+            pos = (nstate.opponent.x, nstate.opponent.y)
+            actions.append((0, Cmd(Cmd.TWEET, pos=pos)))
 
     if actions:
         return min(actions)[1]
