@@ -241,6 +241,28 @@ class TestOffensiveSearch:
 
         assert offensive_search(state, pred_opp=pred) == match
 
+    def test_dont_tweet_on_own_pos(self):
+        state = setup_state()
+        state.player.tweets = 1
+
+        state.player.x = 200
+        state.player.y = 2
+
+        state.opponent.x = state.player.x - state.opponent.speed - 3
+        state.opponent.y = state.player.y
+
+        pred = lambda s: Cmd.NOP
+
+        nstate = next_state(state, Cmd.NOP, pred(state))
+        nnstate = next_state(nstate, Cmd.NOP, pred(nstate))
+        assert nstate.opponent.y == state.player.y
+        assert nstate.opponent.x + 3 == state.player.x
+
+        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x + 2, nnstate.opponent.y))
+        assert match.pos[0] == state.player.x - 1
+        assert match.pos[1] == state.player.y
+        assert offensive_search(state, pred_opp=pred) == match
+
     def test_emp_no_emp(self):
         state = setup_state()
         state.player.emps = 0

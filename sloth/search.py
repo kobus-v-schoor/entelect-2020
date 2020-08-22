@@ -218,6 +218,11 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         nnstate = next_state(nstate, cmds[1], get_cmd(nstate))
         pos = (nstate.opponent.x + 3, nnstate.opponent.y)
 
+        # don't place tweet on current position because if the oppenent emps us
+        # we are gonna get rekt so place ct one block back
+        if pos[0] == state.player.x and pos[1] == state.player.y:
+            pos = (pos[0] - 1, pos[1])
+
         # if the chosen position is ahead of where we'll be, rather not place
         # it as it might end up affecting us
         if pos[0] < nstate.player.x:
