@@ -40,7 +40,7 @@ class Bot:
         except EOFError:
             return -1
 
-    # reads and returns the state json file. returns None if failed
+    # reads and returns the json state file
     def read_state(self, round_num):
         state_file = os.path.join('rounds', str(round_num), 'state.json')
         with open(state_file, 'r') as f:
@@ -174,6 +174,7 @@ class Bot:
             self.opp_search_depth = 3
             cmd = offensive_search(self.state, cmds, self.pred_opp)
 
+            # place oil block on map if we're dropping oil
             if cmd == Cmd.OIL:
                 x, y = self.state.player.x, self.state.player.y
                 self.state.map.global_map[x, y] = Block.OIL_SPILL
@@ -200,12 +201,14 @@ class Bot:
             # parse raw state
             self.parse_state(round_num, raw_state)
 
-            # place cybertruck from previous round
+            # place cybertruck from previous round onto map
             if self.prev_cmd == Cmd.TWEET:
+                # remove our previously placed cybertruck
                 if self.ct_pos is not None:
                     x, y = self.ct_pos
                     block = self.state.map.global_map[x, y].get_underlay()
                     self.state.map.global_map[x, y] = block
+                # place new cybertruck
                 x, y = self.prev_cmd.pos
                 self.state.map.global_map[x, y].set_cybertruck()
                 self.ct_pos = (x, y)

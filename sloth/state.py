@@ -449,6 +449,7 @@ def decel_boost_cancel(player, cmd):
         player.boosting = False
         player.boost_counter = 0
 
+# converts offensive actions to a NOP so that they can be passed to next_state
 def ns_filter(cmd):
     if cmd in [Cmd.OIL, Cmd.TWEET, Cmd.EMP]:
         return Cmd.NOP
@@ -529,6 +530,7 @@ def next_state(state, cmd, opp_cmd):
 # note that this only attempts to calculate cmds that were movement cmds, so
 # offensive cmds like oil and tweeting will be calculated as NOP
 def calc_opp_cmd(cmd, from_state, to_state):
+    # no way to know what they were going to do
     if cmd == Cmd.EMP:
         return None
 
@@ -536,6 +538,7 @@ def calc_opp_cmd(cmd, from_state, to_state):
 
     x, y = from_state.opponent.x, from_state.opponent.y
 
+    # if their boost counter was one their effective speed was actually 9
     if from_state.opponent.boost_counter == 1:
         from_state.opponent.speed = max_speed(from_state.opponent.damage)
     speed = from_state.opponent.speed
@@ -546,11 +549,16 @@ def calc_opp_cmd(cmd, from_state, to_state):
     x_off = fx - x
     y_off = fy - y
 
+    # go through all the valid actions that they could've taken and check if
+    # the next state matches their actual state
     for opp_cmd in valid_actions(from_state.switch()):
         nstate = next_state(from_state, cmd, opp_cmd)
         if ((nstate.opponent.x, nstate.opponent.y, nstate.opponent.speed) ==
                 (fx, fy, fspeed)):
             return opp_cmd
+
+    # above didn't work, so try figure out what they did based on some
+    # rudimentary rules
 
     if y_off:
         return Cmd.LEFT if y_off < 0 else Cmd.RIGHT
@@ -584,6 +592,5 @@ def calc_opp_cmd(cmd, from_state, to_state):
 
         _speed = max(Speed.SPEED_1.value, _speed)
         return Cmd.LIZARD if _speed < fspeed else Cmd.NOP
-
 
     return None
