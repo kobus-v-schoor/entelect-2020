@@ -205,7 +205,6 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         # cybertruck in the path of where the second move would have taken them
         nstate = next_state(state, cmds[0], pred_opp(state))
         nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
-        # TODO test other offsets ahead of player
         pos = (nstate.opponent.x + 1, nnstate.opponent.y)
 
         # if the chosen position is ahead of where we'll be, rather not place
@@ -219,7 +218,6 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
             # check if we're going to rear-end the opponent once we've emp'ed
             # them. if we are rather don't emp because then we are negatively
             # affecting ourselves
-            # TODO maybe still emp if we can move a min amount of blocks?
             safe = state.player.y != state.opponent.y
             safe = (safe or next_state(state, Cmd.NOP, Cmd.NOP).player.x <
                     state.opponent.x)
