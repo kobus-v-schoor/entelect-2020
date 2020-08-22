@@ -205,7 +205,7 @@ def offensive_search(state, cmds=([Cmd.NOP]*2), pred_opp=lambda s: Cmd.ACCEL):
         # cybertruck in the path of where the second move would have taken them
         nstate = next_state(state, cmds[0], pred_opp(state))
         nnstate = next_state(nstate, cmds[1], pred_opp(nstate))
-        pos = (nstate.opponent.x + 1, nnstate.opponent.y)
+        pos = (nstate.opponent.x + 3, nnstate.opponent.y)
 
         # if the chosen position is ahead of where we'll be, rather not place
         # it as it might end up affecting us

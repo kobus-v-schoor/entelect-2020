@@ -203,7 +203,7 @@ class TestOffensiveSearch:
 
         nstate = next_state(state, Cmd.NOP, pred(state))
         nnstate = next_state(nstate, Cmd.NOP, pred(nstate))
-        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x + 1, nnstate.opponent.y))
+        match = Cmd(Cmd.TWEET, pos=(nstate.opponent.x + 3, nnstate.opponent.y))
 
         assert offensive_search(state, pred_opp=pred) == match
 
