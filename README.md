@@ -1,74 +1,65 @@
-# Stage 1
+# Entelect Challenge 2020
 
-## Available powerups
+This is was my entry for the Entelect Challenge 2020, where the game was
+Overdrive. The game was a two player racing game and the objective was
+(unsurprisingly) to cross the finish line first. The game-engine that this bot
+was designed to work with can be found
+[here](https://github.com/EntelectChallenge/2020-Overdrive).
 
-* Boosts (boosts speed to 15 for 5 rounds or until you hit an obstacle)
-* Oil items (allows you to drop an oil spill block)
+My entry made it to the finals where I placed 4th - the current state of the
+repo was my exact submission to the finals.
 
-## Map obstacles
+# General approach
 
-* Mud (reduces speed by one level)
-* Oil spill (reduces speed by one level)
+The basic idea on which the bot operated was to do an iterative-deepening tree
+search (like most players did) to try and find an optimal move. Some
+interesting features that the bot had were:
 
-## Exploitable rules
+* For phase 1 and 2 the bot was able to try and learn its opponent's strategy
+  using an ensemble approach. This worked okay-ish but in phase three it
+  started to have diminishing returns and I disabled it improve the bot's
+  performance
+* The bot predicted the opponent by also doing a tree-search for them
+* Optimization of the evaluation function was done by making incrementally
+  smaller random changes to the evaluation function and calculating the average
+  speed of the bot for a large number of games
+* The bot only took offensive actions if it was not doing anything else
+* Nearly all core parts were covered with unit tests which made development a
+  lot easier in the final rounds since I didn't need to worry that I was
+  breaking things
 
-* If your on the max speed, you can go over one obstacle without actually
-  losing speed, since you can just re-accelerate the next round
-* You can increase your score by dropping unused oil spills instead of doing
-  nothing
+# Some cool things
 
-## General approach
+* For the optimization I developed a multi-threaded runner which would unzip
+  and run multiple games concurrently which made optimization a lot easier and
+  faster
+* The tools included a stats module which which I used to pull detailed stats
+  from a game's logs which I used in optimization
+* In the tools there is an improved version of my public visualizer that added
+  a bunch of features (stepping through the race, skipping to rounds, etc.)
+  which helped me immensely during development
 
-* A iterative deepening tree search was used to consider all valid moves until
-  either the moves resulted in moving outside of the car's view or a max depth
-  was reached
-* The final move was chosen by scoring the final state by weighting various
-  properties of that state - these properties were:
-  * Speed (high weight)
-  * How far the car would have moved (high weight)
-  * Increase in score (low weight)
-  * The opponent's position advancement (low weight)
-  * The opponent's speed (low weight)
-  * The opponent's score (low weight)
-* Final weightings for the above properties was chosen by hand by
-  experimentally playing games (see section on what didn't work for reason)
-* A model of the opponent was built during gameplay by using an ensemble
-  approach which worked on the assumption that most opponents would probably be
-  using some variation on a tree search algorithm. Score weightings (as
-  explained above) that made correct predictions of the opponent was rewarded,
-  with the weightings that had the highest score being used to predict the
-  opponent
-* Opponent's move was also predicted using the same tree search algorithm
+# What worked/didn't work
 
-## Things that worked
+Some of the things that I think worked well:
 
-* The ensemble approach seems to have been a good model for predicting the
-  opponent's moves.
-* Tree-search algorithm was definitely the way to go - produced pseudo-optimal
-  solutions that is easy to optimize
-* Predicting the opponent allowed was very important for offensive gameplay -
-  without it it would've been very hard to use oils and zig-zag (collision
-  logic used to block opponent) effectively
-* Tree-search algorithm was able to effectively run even with Python code given
-  that there are relatively few moves that need to be considered
+* The automated unit testing was a huge help during development. Due to the
+  nature of the tournament where there might pass a month or two between
+  development it was crucial to help me develop without fear of breaking
+  everything
+* In the first and second stage the bot was developed to be as generic as
+  possible to allow easily modifying it for the next rounds. By the third stage
+  the changes needed for the EMPs and damage mechanic was minimal (like one or
+  two hours of work)
+* Staying active on the forum and the game-engine repo allowed me to stay on
+  top of bugs and the newest developments, without it I'd probably run into
+  quite a few issues
 
-## Things that didn't work
+On the other hand, here are some things that didn't turn out so well:
 
-* Optimizing the score weightings using a evolutionary algorithm turned out to
-  be a bust. This was probably due to the fact that the individuals was only
-  played against other randomly generated individuals.
-* Approaches that used traditional machine-learning algorithms to attempt to
-  build a model of the opponent during gameplay didn't work. Even though it was
-  able to train while waiting for the opponent without timing out, the very
-  low number of samples made for very poor models (most of the time only
-  predicting one move)
-* For some reason, whenever decelerating was allowed, every now and then the
-  car would go and stop right before the opponent and just stop, blocking the
-  other player and stopping the game. I couldn't get this eliminated even with
-  score penalties for stopping. Decelerating thus had to be disabled as a valid
-  move
-
-## Improvements to make in the next phase
-
-* Automated optimization of the score weightings is needed. Some approach using
-  an already well-performing score weighting and optimizing that will be needed
+* Using a GA approach to fine-tune the evaluation function didn't work well at
+  all for me, I probably could have done it better but my final non-GA
+  optimization approach worked better in the end
+* Any decisions made on a whim usually turned out to be a problem. All the
+  improvements that I made only truly helped when the statistics were on my
+  side (more than 50 matches) due to the random nature of the game
