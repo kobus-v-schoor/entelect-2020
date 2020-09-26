@@ -36,8 +36,8 @@ interesting features that the bot had were:
   and run multiple games/game-engines concurrently which made optimization a
   lot easier and faster. I used a GCP VM with my free credits to run most of my
   optimizations.
-* The tools folder includes a stats module which which I used to pull detailed
-  stats from a game's logs which I used in optimization
+* The tools folder includes a stats module which I used to pull detailed stats
+  from a game's logs which I used in optimization
 * In the tools there is an improved version of my public visualizer that added
   a bunch of features (stepping through the race, skipping to rounds, etc.)
   which helped me immensely during development
