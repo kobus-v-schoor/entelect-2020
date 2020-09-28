@@ -20,6 +20,8 @@ interesting features that the bot had were:
   started to have diminishing returns and I disabled it improve the bot's
   performance
 * The bot predicted the opponent by also doing a tree-search for them
+* It was able to work out the opponent's cmds and also keep track of their
+  powerups. It used this to make better predictions of the opponent's next move
 * Optimization of the evaluation function was done by making incrementally
   smaller random changes to the evaluation function and calculating the average
   speed of the bot for a large number of games
